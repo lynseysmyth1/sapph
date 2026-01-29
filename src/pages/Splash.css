@@ -1,0 +1,167 @@
+.splash {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background-image: url('/images/splash.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.splash-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(232, 93, 44, 0.45);
+  pointer-events: none;
+}
+
+.splash-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 360px;
+}
+
+.splash-spacer {
+  flex: 1;
+  min-height: 0;
+}
+
+.splash-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 30px;
+  margin-left: 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.splash-logo-img {
+  height: 5.375rem;
+  width: auto;
+  object-fit: contain;
+}
+
+.splash-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  margin-top: auto;
+  padding-bottom: 3rem;
+}
+
+.splash-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.splash-btn:hover {
+  text-decoration: none;
+  opacity: 0.95;
+}
+
+.splash-btn:active {
+  transform: scale(0.98);
+}
+
+.splash-btn-primary {
+  background: white;
+  color: var(--sapph-orange);
+  border: none;
+}
+
+.splash-btn-secondary {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+/* Sign-in overlay – fades in and blurs background */
+.splash-signin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end; /* Align sheet to bottom */
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+.splash-signin-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* The Bottom Sheet */
+.splash-signin-sheet {
+  width: 100%;
+  max-width: 440px;
+  background: transparent;
+  border-radius: 32px 32px 0 0;
+  padding: 0 1.5rem 3rem;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.splash-signin-overlay.is-visible .splash-signin-sheet {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  margin: 12px auto 24px;
+}
+
+/* Remove the default sign-in full-page background when inside the sheet */
+.splash-signin-sheet .signin {
+  background: transparent;
+  min-height: auto;
+  padding: 0;
+}
+
+.splash-signin-sheet .signin-card {
+  background: transparent;
+  box-shadow: none;
+  max-width: 100%;
+  padding: 0;
+}
+
+.splash-signin-sheet .signin-back {
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1rem;
+}

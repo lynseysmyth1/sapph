@@ -1,0 +1,52 @@
+.home {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sapph-bg);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: var(--sapph-white);
+  box-shadow: var(--shadow);
+}
+
+.home-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sapph-dark);
+  margin: 0;
+}
+
+.home-signout {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: var(--sapph-muted);
+  background: none;
+  border: none;
+}
+
+.home-signout:hover {
+  color: var(--sapph-orange);
+}
+
+.home-main {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.home-welcome {
+  font-size: 1.125rem;
+  color: var(--sapph-dark);
+  margin: 0 0 0.5rem;
+}
+
+.home-placeholder {
+  font-size: 0.95rem;
+  color: var(--sapph-muted);
+  margin: 0;
+}
