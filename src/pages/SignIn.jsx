@@ -29,7 +29,8 @@ export default function SignIn({ onBack }) {
   const { user, profile, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isEmailMode, setIsEmailMode] = useState(true) // Default to email/password mode
+  const [showForm, setShowForm] = useState(false)
+  const [isSignIn, setIsSignIn] = useState(true) // true for sign in, false for create account
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
 
@@ -45,12 +46,9 @@ export default function SignIn({ onBack }) {
     setTimeout(() => setMessage({ type: '', text: '' }), 5000)
   }
 
-  const handleOAuth = async (provider) => {
-    setLoading(true)
-    setMessage({ type: '', text: '' })
-    showMessage('info', `${provider} sign-in coming soon. Please use email/password for now.`)
-    setLoading(false)
-    // TODO: Implement Firebase OAuth providers (Google, Apple) later
+  const handleButtonClick = (signInMode) => {
+    setIsSignIn(signInMode)
+    setShowForm(true)
   }
 
   const handleEmailSubmit = async (e) => {
@@ -66,37 +64,21 @@ export default function SignIn({ onBack }) {
     setLoading(true)
     setMessage({ type: '', text: '' })
     try {
-      // Try to sign in first
-      try {
+      if (isSignIn) {
+        // Sign in mode
         await signInWithEmailAndPassword(auth, email.trim(), password.trim())
         // Successfully signed in - AuthContext will handle navigation
         return
-      } catch (signInError) {
-        // If user doesn't exist or invalid credential, try to create account
-        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-          // Try creating account - invalid-credential might mean account doesn't exist
-          try {
-            await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
-            // Account created - AuthContext will handle navigation
-            showMessage('success', 'Account created! Signing you in...')
-            return
-          } catch (signUpError) {
-            if (signUpError.code === 'auth/email-already-in-use') {
-              // Account exists but password was wrong
-              showMessage('error', 'Account already exists. Please check your password.')
-            } else {
-              throw signUpError
-            }
-          }
-        } else if (signInError.code === 'auth/wrong-password') {
-          showMessage('error', 'Incorrect password. Please try again.')
-        } else {
-          throw signInError
-        }
+      } else {
+        // Create account mode
+        await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
+        showMessage('success', 'Account created! Signing you in...')
+        // AuthContext will handle navigation
+        return
       }
     } catch (err) {
       const msg = err.message || ''
-      console.error('Sign in error:', err)
+      console.error('Auth error:', err)
       if (err.code === 'auth/too-many-requests') {
         showMessage('error', 'Too many attempts. Please wait a moment and try again.')
       } else if (err.code === 'auth/weak-password') {
@@ -104,26 +86,13 @@ export default function SignIn({ onBack }) {
       } else if (err.code === 'auth/invalid-email') {
         showMessage('error', 'Invalid email address. Please check and try again.')
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-        // Account doesn't exist - try creating it
-        showMessage('info', 'No account found. Creating new account...')
-        try {
-          await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
-          showMessage('success', 'Account created! Signing you in...')
-          // AuthContext will handle navigation
-        } catch (createErr) {
-          console.error('Create account error:', createErr)
-          if (createErr.code === 'auth/email-already-in-use') {
-            showMessage('error', 'Account already exists. Please check your password or try resetting it.')
-          } else if (createErr.code === 'auth/weak-password') {
-            showMessage('error', 'Password is too weak. Please use a stronger password (at least 6 characters).')
-          } else {
-            showMessage('error', createErr.message || 'Failed to create account. Please try again.')
-          }
-        }
+        showMessage('error', 'No account found with this email. Please create an account instead.')
+      } else if (err.code === 'auth/email-already-in-use') {
+        showMessage('error', 'An account with this email already exists. Please sign in instead.')
       } else if (err.code === 'auth/wrong-password') {
         showMessage('error', 'Incorrect password. Please try again.')
       } else {
-        showMessage('error', msg || `Sign in failed: ${err.code || 'Unknown error'}. Please check your email and password.`)
+        showMessage('error', msg || `Failed: ${err.code || 'Unknown error'}. Please try again.`)
       }
     } finally {
       setLoading(false)
@@ -131,53 +100,49 @@ export default function SignIn({ onBack }) {
   }
 
   return (
-    <div className="signin">
-      <div className="signin-card">
-        {message.text && (
-          <div className={`signin-message signin-message--${message.type}`}>
-            {message.text}
-          </div>
-        )}
-
-        <div className="signin-legal">
-          By tapping Sign in or Create account, you agree to our{' '}
-          <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. 
-          Learn how we process your data in our{' '}
-          <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
-        </div>
-
-        {!isEmailMode ? (
-          <>
-            <div className="signin-buttons">
-              <button
-                type="button"
-                className="signin-btn signin-btn-apple"
-                onClick={() => handleOAuth('apple')}
-                disabled={loading}
-              >
-                {APPLE_ICON}
-                <span>Sign in with Apple</span>
-              </button>
-              <button
-                type="button"
-                className="signin-btn signin-btn-google"
-                onClick={() => handleOAuth('google')}
-                disabled={loading}
-              >
-                {GOOGLE_ICON}
-                <span>Sign in with Google</span>
-              </button>
-              <button
-                type="button"
-                className="signin-btn signin-btn-email-trigger"
-                onClick={() => setIsEmailMode(true)}
-                disabled={loading}
-              >
-                <span>Sign in with Email & Password</span>
-              </button>
+    <div className={`signin ${onBack ? 'signin-in-overlay' : ''}`}>
+      {!onBack && (
+        <div className="signin-overlay" aria-hidden="true" />
+      )}
+      
+      {!showForm ? (
+        <div className="signin-content">
+          {!onBack && (
+            <div className="signin-logo-wrap">
+              <h1 className="signin-logo-text">//Sapph</h1>
             </div>
-          </>
-        ) : (
+          )}
+          {message.text && (
+            <div className={`signin-message signin-message--${message.type}`}>
+              {message.text}
+            </div>
+          )}
+          <div className="signin-buttons">
+            <button
+              type="button"
+              className="signin-btn signin-btn-primary"
+              onClick={() => handleButtonClick(false)}
+              disabled={loading}
+            >
+              Create Account
+            </button>
+            <button
+              type="button"
+              className="signin-btn signin-btn-secondary"
+              onClick={() => handleButtonClick(true)}
+              disabled={loading}
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="signin-card">
+          {message.text && (
+            <div className={`signin-message signin-message--${message.type}`}>
+              {message.text}
+            </div>
+          )}
           <form className="signin-form" onSubmit={handleEmailSubmit}>
             <label className="signin-label" htmlFor="email">
               Email
@@ -203,37 +168,52 @@ export default function SignIn({ onBack }) {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete={isSignIn ? 'current-password' : 'new-password'}
               disabled={loading}
             />
             <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in / Create account'}
+              {loading 
+                ? (isSignIn ? 'Signing in…' : 'Creating account…') 
+                : (isSignIn ? 'Sign In' : 'Create Account')
+              }
             </button>
             
             <button
               type="button"
               className="signin-link"
-              onClick={() => setIsEmailMode(false)}
+              onClick={() => {
+                setShowForm(false)
+                setEmail('')
+                setPassword('')
+                setMessage({ type: '', text: '' })
+              }}
               disabled={loading}
             >
-              ← Use Apple or Google instead
+              ← Back
             </button>
           </form>
-        )}
 
-        <div className="signin-footer">
-          {onBack ? (
-            <button type="button" className="signin-back" onClick={onBack}>
-              Cancel
-            </button>
-          ) : (
-            <Link to="/" className="signin-back">
-              Cancel
-            </Link>
-          )}
-          <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
+          <div className="signin-legal">
+            By tapping Sign in or Create account, you agree to our{' '}
+            <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. 
+            Learn how we process your data in our{' '}
+            <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
+          </div>
+
+          <div className="signin-footer">
+            {onBack ? (
+              <button type="button" className="signin-back" onClick={onBack}>
+                Cancel
+              </button>
+            ) : (
+              <Link to="/" className="signin-back">
+                Cancel
+              </Link>
+            )}
+            <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

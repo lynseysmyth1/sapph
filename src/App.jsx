@@ -5,7 +5,10 @@ import Landing from './pages/Landing'
 import SignIn from './pages/SignIn'
 import Onboarding from './pages/Onboarding'
 import Home from './pages/Home'
+import Profile from './pages/Profile'
 import Likes from './pages/Likes'
+import Messages from './pages/Messages'
+import Chat from './pages/Chat'
 import TestFirebase from './pages/TestFirebase'
 
 function ProtectedRoute({ children }) {
@@ -46,10 +49,34 @@ export default function App() {
         }
       />
       <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/likes"
         element={
           <ProtectedRoute>
             <Likes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat/:chatId"
+        element={
+          <ProtectedRoute>
+            <Chat />
           </ProtectedRoute>
         }
       />

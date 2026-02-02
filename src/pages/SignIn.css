@@ -1,20 +1,83 @@
 .signin {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  background-image: url('/images/splash.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.signin-in-overlay {
+  background: transparent;
+  justify-content: center;
+}
+
+.signin-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(232, 93, 44, 0.45);
+  pointer-events: none;
+}
+
+.signin-logo-wrap {
+  display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 30px;
+  margin-top: auto;
+  width: 100%;
+  z-index: 1;
+}
+
+.signin-logo-text {
+  font-family: 'Prompt', sans-serif;
+  font-size: 4.8rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  line-height: 1;
+}
+
+.signin-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 360px;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: 1.5rem;
-  background: linear-gradient(180deg, var(--sapph-bg) 0%, #fff5f2 100%);
+  padding-bottom: 3rem;
+}
+
+.signin-content::before {
+  content: '';
+  flex: 1;
+  min-height: 0;
 }
 
 .signin-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 400px;
-  background: var(--sapph-white);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px 24px 0 0;
   padding: 2rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+  margin-top: auto;
 }
 
 .signin-footer {
@@ -95,14 +158,15 @@
 .signin-legal {
   font-size: 0.75rem;
   line-height: 1.4;
-  color: rgba(255, 255, 255, 0.8);
+  color: #666;
   text-align: center;
-  margin-bottom: 2rem;
-  padding: 0 1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+  padding: 0 0.5rem;
 }
 
 .signin-legal a {
-  color: white;
+  color: var(--sapph-orange);
   text-decoration: underline;
   font-weight: 500;
 }
@@ -110,7 +174,12 @@
 .signin-buttons {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  max-width: 320px;
+  margin-top: auto;
+  padding-bottom: 0;
 }
 
 .signin-btn {
@@ -119,18 +188,22 @@
   justify-content: center;
   gap: 0.75rem;
   width: 100%;
-  padding: 1rem 1.25rem;
-  font-size: 0.95rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  border-radius: 50px; /* Pill shape */
+  border-radius: var(--radius);
   border: none;
-  background: white;
-  color: #1a1a1a;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.1s;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .signin-btn:hover:not(:disabled) {
-  opacity: 0.9;
+  opacity: 0.95;
+}
+
+.signin-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .signin-btn:disabled {
@@ -138,17 +211,17 @@
   cursor: not-allowed;
 }
 
-.signin-btn-apple svg, 
-.signin-btn-google svg {
-  width: 18px;
-  height: 18px;
+.signin-btn-primary {
+  background: white;
+  color: var(--sapph-orange);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
 }
 
-.signin-btn-email-trigger {
-  background: rgba(255, 255, 255, 0.2);
+.signin-btn-secondary {
+  background: transparent;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
+  border: 2px solid white;
 }
 
 .signin-btn-submit {
@@ -193,7 +266,7 @@
 .signin-label {
   font-size: 0.9rem;
   font-weight: 500;
-  color: white;
+  color: #333;
   margin-top: 0.75rem;
 }
 
@@ -203,7 +276,7 @@
 
 .signin-optional {
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
+  color: #666;
 }
 
 .signin-input {
@@ -225,9 +298,10 @@
   background: none;
   border: none;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #666;
   margin-top: 0.75rem;
   padding: 0;
+  cursor: pointer;
 }
 
 .signin-link:hover {

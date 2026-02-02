@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { updatePresence } from '../lib/chatHelpers'
 
 const AuthContext = createContext(null)
 
@@ -56,6 +57,11 @@ export function AuthProvider({ children }) {
           emailVerified: firebaseUser.emailVerified
         })
         
+        // Update online status
+        updatePresence(firebaseUser.uid, true).catch(err => {
+          console.error('Error updating presence:', err)
+        })
+        
         setLoading(true)
         try {
           await fetchProfile(firebaseUser.uid)
@@ -70,6 +76,12 @@ export function AuthProvider({ children }) {
         }
       } else {
         // User is signed out
+        // Update offline status before clearing user
+        if (user?.id) {
+          updatePresence(user.id, false).catch(err => {
+            console.error('Error updating presence:', err)
+          })
+        }
         setUser(null)
         setProfile(null)
         setLoading(false)
@@ -94,6 +106,10 @@ export function AuthProvider({ children }) {
     signOut: async () => {
       setLoading(true)
       try {
+        // Update offline status before signing out
+        if (user?.id) {
+          await updatePresence(user.id, false)
+        }
         await firebaseSignOut(auth)
         if (mountedRef.current) {
           setProfile(null)
