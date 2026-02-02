@@ -23,7 +23,12 @@ So: **Authentication** is in the main list. **Project Settings** is separate, at
 
 # Step 1 – Get your Project URL and anon key
 
-You need these so your app can talk to Supabase. The URL is already in your `.env`; you only need to **copy the anon key** and paste it into `.env`.
+You need these so your app can talk to Supabase. **Supabase does not show "VITE_SUPABASE_URL" or "VITE_SUPABASE_ANON_KEY"** — those are the names you use in your `.env` file. On the API page you see different labels:
+
+| Put this in your `.env` file | On the Supabase API page it’s called |
+|-----------------------------|--------------------------------------|
+| `VITE_SUPABASE_URL=`        | **Project URL** (a URL like `https://xxxxx.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY=`   | **Project API keys** → the **anon** / **public** key (not the service_role one) |
 
 1. Go to **https://supabase.com/dashboard** and log in.
 2. Click your **project** (the one for Sapph). You’ll see the project’s dashboard.
@@ -98,3 +103,47 @@ You only need these if you want “Continue with Google / Apple / Facebook”. Y
 - **Facebook** – Supabase: **Authentication** → **Providers** → **Facebook**. Turn it on and paste **App ID** and **App Secret** from Facebook Developers.
 
 If you want the exact clicks for Google or Facebook, say which one and we can do a “start here” guide for that next.
+
+---
+
+# Troubleshooting: "Save is taking too long" or onboarding won't save
+
+If you finish onboarding (with or without photos) and it hangs, then shows **"Save is taking too long"** or **"Save timed out"**, check the following.
+
+## 1. Environment variables
+
+- In your project root, open **`.env`** (copy from `.env.example` if it doesn't exist).
+- You must have **both** of these set (from Supabase **Project Settings → API**):
+  - `VITE_SUPABASE_URL=https://your-project-id.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=eyJ...` (the **anon public** key, not the service_role key).
+- No quotes, no spaces. Restart the dev server (`npm run dev`) after changing `.env`.
+
+## 2. Project not paused
+
+- Free-tier Supabase projects **pause** after inactivity.
+- In the dashboard, if you see "Project paused", click **Restore** and wait for it to come back.
+- Until it's restored, the app cannot save.
+
+## 3. `profiles` table and RLS
+
+- In Supabase: **Table Editor** → open the **`profiles`** table.
+- The table must exist and have the columns from **`supabase_schema.sql`** in this project (e.g. `id`, `full_name`, `dob`, `photos`, `bio`, `onboarding_completed`, etc.).
+- If you haven't run the schema yet: **SQL Editor** → New query → paste the contents of **`supabase_schema.sql`** → Run.
+- **RLS (Row Level Security)** must be enabled on `profiles`, with policies that allow:
+  - **SELECT** – user can read their own row: `(select auth.uid()) = id`
+  - **INSERT** – user can insert their own row: `(select auth.uid()) = id`
+  - **UPDATE** – user can update their own row: `(select auth.uid()) = id`
+
+Check in **Database → Policies** for the `profiles` table that these three policies exist and use `auth.uid()` (or `(select auth.uid())`) and `id` as above.
+
+## 4. Storage: Policies tab vs Schema tab
+
+- **Storage → Policies** (with a bucket selected) is where you set upload/view/delete rules for that bucket. The app uses these. If you have INSERT, SELECT, and DELETE for `profile-photos`, you’re set.
+- **Storage → Schema** shows policies defined directly on `storage.objects` / `storage.buckets`. It can say "No policies created yet" even when bucket policies exist. You don’t need to add anything there for uploads to work.
+- To define the same rules via SQL (optional): **SQL Editor** → New query → paste the contents of **`supabase_storage_setup.sql`** → Run. That creates policies on `storage.objects` for the `profile-photos` bucket.
+
+## 5. Browser console
+
+- When you tap **Finish**, open **Developer Tools** (F12 or right‑click → Inspect) → **Console**.
+- If the save fails, Supabase often logs an error there (e.g. "permission denied", "column does not exist", "JWT expired").
+- Use that message to fix the cause (e.g. wrong policy, missing column, or re‑sign‑in if the session expired).

@@ -1,0 +1,85 @@
+.test-supabase {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem 1.5rem;
+  background: var(--sapph-bg, #fafafa);
+}
+
+.test-supabase h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.test-supabase-section {
+  margin-bottom: 2rem;
+}
+
+.test-supabase-section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.test-supabase-note {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+.test-supabase-url {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.test-supabase-url code {
+  background: #eee;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+}
+
+.test-supabase-btn {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--sapph-orange, #e85d3a);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.test-supabase-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.test-supabase-result {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.test-supabase-result.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.test-supabase-result.error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.test-supabase-result p {
+  margin: 0.25rem 0;
+}
+
+.test-supabase-back {
+  margin-top: 2rem;
+}
+
+.test-supabase-back a {
+  color: var(--sapph-orange, #e85d3a);
+  font-weight: 500;
+}

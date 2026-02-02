@@ -1,13 +1,12 @@
 :root {
-  --sapph-orange: #E85D2C;
-  --sapph-orange-hover: #d14e20;
-  --sapph-dark: #1a1a1a;
-  --sapph-muted: #6b6b6b;
-  --sapph-bg: #fafafa;
+  --sapph-orange: #F06B4A;
+  --sapph-orange-hover: #d85a3c;
+  --sapph-text-body: #555555;
+  --sapph-bg: #ffffff;
   --sapph-white: #ffffff;
   --radius: 12px;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.12);
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 *,
@@ -23,11 +22,26 @@ html {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Lato', sans-serif;
+  font-weight: 400; /* Normal body copy */
   background: var(--sapph-bg);
-  color: var(--sapph-dark);
+  color: var(--sapph-text-body);
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+.section-progress {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #888888;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Prompt', sans-serif;
+  color: var(--sapph-orange);
 }
 
 #root {

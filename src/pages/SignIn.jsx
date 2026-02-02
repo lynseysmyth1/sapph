@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { useAuth } from '../contexts/AuthContext'
+import { auth } from '../lib/firebase'
 import './SignIn.css'
 
 const APPLE_ICON = (
@@ -24,11 +26,19 @@ const FACEBOOK_ICON = (
 
 export default function SignIn({ onBack }) {
   const navigate = useNavigate()
+  const { user, profile, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isEmailMode, setIsEmailMode] = useState(false)
+  const [isEmailMode, setIsEmailMode] = useState(true) // Default to email/password mode
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+
+  // If already signed in, go to home or onboarding
+  useEffect(() => {
+    if (authLoading || !user) return
+    navigate(profile?.onboarding_completed ? '/home' : '/onboarding', { replace: true })
+  }, [user, profile, authLoading, navigate])
+
 
   const showMessage = (type, text) => {
     setMessage({ type, text })
@@ -38,18 +48,9 @@ export default function SignIn({ onBack }) {
   const handleOAuth = async (provider) => {
     setLoading(true)
     setMessage({ type: '', text: '' })
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: `${window.location.origin}/home` },
-      })
-      if (error) throw error
-      if (data?.url) window.location.href = data.url
-    } catch (err) {
-      showMessage('error', err.message || `Sign in with ${provider} failed`)
-    } finally {
-      setLoading(false)
-    }
+    showMessage('info', `${provider} sign-in coming soon. Please use email/password for now.`)
+    setLoading(false)
+    // TODO: Implement Firebase OAuth providers (Google, Apple) later
   }
 
   const handleEmailSubmit = async (e) => {
@@ -58,31 +59,72 @@ export default function SignIn({ onBack }) {
       showMessage('error', 'Please enter your email')
       return
     }
+    if (!password.trim()) {
+      showMessage('error', 'Please enter your password')
+      return
+    }
     setLoading(true)
     setMessage({ type: '', text: '' })
     try {
-      if (password) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        if (signInError) {
-          if (signInError.message?.includes('Invalid login') || signInError.message?.includes('invalid_credentials')) {
-            const { error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password })
-            if (signUpError) throw signUpError
-            navigate('/home', { replace: true })
+      // Try to sign in first
+      try {
+        await signInWithEmailAndPassword(auth, email.trim(), password.trim())
+        // Successfully signed in - AuthContext will handle navigation
+        return
+      } catch (signInError) {
+        // If user doesn't exist or invalid credential, try to create account
+        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+          // Try creating account - invalid-credential might mean account doesn't exist
+          try {
+            await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
+            // Account created - AuthContext will handle navigation
+            showMessage('success', 'Account created! Signing you in...')
             return
+          } catch (signUpError) {
+            if (signUpError.code === 'auth/email-already-in-use') {
+              // Account exists but password was wrong
+              showMessage('error', 'Account already exists. Please check your password.')
+            } else {
+              throw signUpError
+            }
           }
+        } else if (signInError.code === 'auth/wrong-password') {
+          showMessage('error', 'Incorrect password. Please try again.')
+        } else {
           throw signInError
         }
-        navigate('/home', { replace: true })
-        return
       }
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: `${window.location.origin}/home` },
-      })
-      if (error) throw error
-      showMessage('success', 'Check your email for the sign-in link.')
     } catch (err) {
-      showMessage('error', err.message || 'Something went wrong')
+      const msg = err.message || ''
+      console.error('Sign in error:', err)
+      if (err.code === 'auth/too-many-requests') {
+        showMessage('error', 'Too many attempts. Please wait a moment and try again.')
+      } else if (err.code === 'auth/weak-password') {
+        showMessage('error', 'Password is too weak. Please use a stronger password (at least 6 characters).')
+      } else if (err.code === 'auth/invalid-email') {
+        showMessage('error', 'Invalid email address. Please check and try again.')
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        // Account doesn't exist - try creating it
+        showMessage('info', 'No account found. Creating new account...')
+        try {
+          await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
+          showMessage('success', 'Account created! Signing you in...')
+          // AuthContext will handle navigation
+        } catch (createErr) {
+          console.error('Create account error:', createErr)
+          if (createErr.code === 'auth/email-already-in-use') {
+            showMessage('error', 'Account already exists. Please check your password or try resetting it.')
+          } else if (createErr.code === 'auth/weak-password') {
+            showMessage('error', 'Password is too weak. Please use a stronger password (at least 6 characters).')
+          } else {
+            showMessage('error', createErr.message || 'Failed to create account. Please try again.')
+          }
+        }
+      } else if (err.code === 'auth/wrong-password') {
+        showMessage('error', 'Incorrect password. Please try again.')
+      } else {
+        showMessage('error', msg || `Sign in failed: ${err.code || 'Unknown error'}. Please check your email and password.`)
+      }
     } finally {
       setLoading(false)
     }
@@ -131,7 +173,7 @@ export default function SignIn({ onBack }) {
                 onClick={() => setIsEmailMode(true)}
                 disabled={loading}
               >
-                <span>Sign in with Email</span>
+                <span>Sign in with Email & Password</span>
               </button>
             </div>
           </>
@@ -149,30 +191,32 @@ export default function SignIn({ onBack }) {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               disabled={loading}
+              autoFocus
             />
             <label className="signin-label" htmlFor="password">
-              Password <span className="signin-optional">(optional – or enter one to create an account and sign in straight away)</span>
+              Password
             </label>
             <input
               id="password"
               type="password"
               className="signin-input"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               disabled={loading}
             />
             <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? 'Signing in…' : 'Sign in / Create account'}
             </button>
+            
             <button
               type="button"
               className="signin-link"
               onClick={() => setIsEmailMode(false)}
               disabled={loading}
             >
-              ← Use Apple, Google or Facebook
+              ← Use Apple or Google instead
             </button>
           </form>
         )}
@@ -187,6 +231,7 @@ export default function SignIn({ onBack }) {
               Cancel
             </Link>
           )}
+          <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
         </div>
       </div>
     </div>

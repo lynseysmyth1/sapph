@@ -1,31 +1,110 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { auth, db } from '../lib/firebase'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+  const mountedRef = useRef(true)
+
+  const fetchProfile = async (userId) => {
+    if (!userId) return null
+    try {
+      const profileRef = doc(db, 'profiles', userId)
+      const profileSnap = await getDoc(profileRef)
+      
+      if (profileSnap.exists()) {
+        const data = { id: profileSnap.id, ...profileSnap.data() }
+        if (mountedRef.current) setProfile(data)
+        return data
+      } else {
+        // Profile doesn't exist yet - create empty one
+        const emptyProfile = {
+          id: userId,
+          onboarding_completed: false,
+          updated_at: new Date().toISOString()
+        }
+        await setDoc(profileRef, emptyProfile)
+        if (mountedRef.current) setProfile(emptyProfile)
+        return emptyProfile
+      }
+    } catch (err) {
+      console.error('fetchProfile error:', err)
+      if (mountedRef.current) setProfile(null)
+      return null
+    }
+  }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+    mountedRef.current = true
+
+    // Firebase auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!mountedRef.current) return
+
+      if (firebaseUser) {
+        // User is signed in
+        setUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          emailVerified: firebaseUser.emailVerified
+        })
+        
+        setLoading(true)
+        try {
+          await fetchProfile(firebaseUser.uid)
+          if (mountedRef.current) {
+            const path = window.location.pathname
+            if (path === '/signin' || path === '/enter' || path === '/') {
+              navigate('/home', { replace: true })
+            }
+          }
+        } finally {
+          if (mountedRef.current) setLoading(false)
+        }
+      } else {
+        // User is signed out
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+      }
     })
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      mountedRef.current = false
+      unsubscribe()
+    }
+  }, [navigate])
 
   const value = {
     user,
+    profile,
     loading,
-    signOut: () => supabase.auth.signOut(),
+    refreshProfile: async () => {
+      if (user) {
+        await fetchProfile(user.id)
+      }
+    },
+    signOut: async () => {
+      setLoading(true)
+      try {
+        await firebaseSignOut(auth)
+        if (mountedRef.current) {
+          setProfile(null)
+          setUser(null)
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Sign out error:', err)
+        if (mountedRef.current) setLoading(false)
+      }
+    },
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

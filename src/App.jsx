@@ -3,12 +3,22 @@ import { useAuth } from './contexts/AuthContext'
 import Splash from './pages/Splash'
 import Landing from './pages/Landing'
 import SignIn from './pages/SignIn'
+import Onboarding from './pages/Onboarding'
 import Home from './pages/Home'
+import Likes from './pages/Likes'
+import TestFirebase from './pages/TestFirebase'
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
+
   if (loading) return <div className="app-loading">Loading…</div>
   if (!user) return <Navigate to="/signin" replace />
+
+  // New user or incomplete profile → onboarding
+  if (user && !profile?.onboarding_completed && window.location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return children
 }
 
@@ -18,11 +28,28 @@ export default function App() {
       <Route path="/" element={<Splash />} />
       <Route path="/enter" element={<Landing />} />
       <Route path="/signin" element={<SignIn />} />
+      <Route path="/test-firebase" element={<TestFirebase />} />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/home"
         element={
           <ProtectedRoute>
             <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/likes"
+        element={
+          <ProtectedRoute>
+            <Likes />
           </ProtectedRoute>
         }
       />

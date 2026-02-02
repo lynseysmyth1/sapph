@@ -20,7 +20,18 @@
 .signin-footer {
   margin-top: 1.5rem;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.signin-test-link {
+  font-size: 0.85rem;
+  color: var(--sapph-muted);
+}
+
+.signin-test-link:hover {
+  color: var(--sapph-orange);
 }
 
 .signin-back {
@@ -64,6 +75,21 @@
   border-radius: var(--radius);
   margin-bottom: 1rem;
   font-size: 0.9rem;
+  text-align: center;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.signin-message--success {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.signin-message--error {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: rgba(244, 67, 54, 0.3);
 }
 
 .signin-legal {

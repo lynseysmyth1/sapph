@@ -1,9 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import SignIn from './SignIn'
 import './Splash.css'
 
 export default function Splash() {
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
   const [showSignInOptions, setShowSignInOptions] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home', { replace: true })
+    }
+  }, [user, loading, navigate])
+
+  if (loading) return <div className="app-loading">Loading…</div>
 
   return (
     <div className="splash">
