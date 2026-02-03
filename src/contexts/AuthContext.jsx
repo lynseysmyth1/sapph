@@ -45,9 +45,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true
 
+    // Timeout: if auth doesn't resolve within 10s (e.g. no network on device), show app anyway
+    const loadingTimeout = setTimeout(() => {
+      if (mountedRef.current) {
+        setLoading(false)
+      }
+    }, 10000)
+
     // Firebase auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!mountedRef.current) return
+
+      clearTimeout(loadingTimeout)
 
       if (firebaseUser) {
         // User is signed in
@@ -90,6 +99,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       mountedRef.current = false
+      clearTimeout(loadingTimeout)
       unsubscribe()
     }
   }, [navigate])

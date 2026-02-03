@@ -122,17 +122,26 @@
   pointer-events: auto;
 }
 
-/* The Bottom Sheet */
+/* The Bottom Sheet – no scrollbar; form is anchored to bottom */
 .splash-signin-sheet {
   width: 100%;
   max-width: 440px;
+  min-height: 70vh;
+  max-height: 85vh;
   background: transparent;
   border-radius: 32px 32px 0 0;
   padding: 0 1.5rem 3rem;
   transform: translateY(100%);
   transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-  max-height: 85vh;
-  overflow-y: auto;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.splash-signin-sheet::-webkit-scrollbar {
+  display: none;
 }
 
 .splash-signin-overlay.is-visible .splash-signin-sheet {
@@ -147,18 +156,28 @@
   margin: 12px auto 24px;
 }
 
-/* Remove the default sign-in full-page background when inside the sheet */
+/* Remove the default sign-in full-page background when inside the sheet; anchor form to bottom; no scrollbar */
 .splash-signin-sheet .signin {
   background: transparent;
   min-height: auto;
   padding: 0;
+  margin-top: auto;
+  overflow: hidden;
 }
 
-.splash-signin-sheet .signin-card {
-  background: transparent;
-  box-shadow: none;
+/* Sheet form (replaces buttons): frosted card, fades in; no scrollbar */
+.splash-signin-sheet .signin-sheet-form,
+.splash-signin-sheet .signin-sheet-form .signin-card {
+  overflow: hidden;
+}
+.splash-signin-sheet .signin-sheet-form .signin-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 1.5rem 1.25rem;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
   max-width: 100%;
-  padding: 0;
 }
 
 .splash-signin-sheet .signin-back {

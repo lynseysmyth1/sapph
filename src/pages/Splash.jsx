@@ -8,6 +8,7 @@ export default function Splash() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [showSignInOptions, setShowSignInOptions] = useState(false)
+  const [signInMode, setSignInMode] = useState(true) // true = sign in, false = create account
 
   useEffect(() => {
     if (!loading && user) {
@@ -33,14 +34,20 @@ export default function Splash() {
           <button
             type="button"
             className="splash-btn splash-btn-primary"
-            onClick={() => setShowSignInOptions(true)}
+            onClick={() => {
+              setSignInMode(false)
+              setShowSignInOptions(true)
+            }}
           >
             Create Account
           </button>
           <button
             type="button"
             className="splash-btn splash-btn-secondary"
-            onClick={() => setShowSignInOptions(true)}
+            onClick={() => {
+              setSignInMode(true)
+              setShowSignInOptions(true)
+            }}
           >
             Sign In
           </button>
@@ -54,7 +61,14 @@ export default function Splash() {
       >
         <div className="splash-signin-sheet" onClick={(e) => e.stopPropagation()}>
           <div className="sheet-handle" />
-          <SignIn onBack={() => setShowSignInOptions(false)} />
+          {showSignInOptions && (
+            <SignIn
+              key={signInMode ? 'signin' : 'create'}
+              onBack={() => setShowSignInOptions(false)}
+              initialShowForm
+              initialIsSignIn={signInMode}
+            />
+          )}
         </div>
       </div>
     </div>

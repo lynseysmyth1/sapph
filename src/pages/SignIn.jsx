@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { useAuth } from '../contexts/AuthContext'
@@ -24,15 +24,17 @@ const FACEBOOK_ICON = (
   </svg>
 )
 
-export default function SignIn({ onBack }) {
+export default function SignIn({ onBack, initialShowForm = false, initialIsSignIn = true }) {
   const navigate = useNavigate()
   const { user, profile, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [isSignIn, setIsSignIn] = useState(true) // true for sign in, false for create account
+  const [showForm, setShowForm] = useState(initialShowForm)
+  const [isSignIn, setIsSignIn] = useState(initialIsSignIn)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const formCardRef = useRef(null)
+  const choosingRef = useRef(false)
 
   // If already signed in, go to home or onboarding
   useEffect(() => {
@@ -49,6 +51,24 @@ export default function SignIn({ onBack }) {
   const handleButtonClick = (signInMode) => {
     setIsSignIn(signInMode)
     setShowForm(true)
+  }
+
+  // Use pointer + click so taps work on iOS and desktop; guard avoids double fire
+  const onChooseCreateAccount = (e) => {
+    if (choosingRef.current) return
+    choosingRef.current = true
+    setTimeout(() => { choosingRef.current = false }, 400)
+    e.preventDefault()
+    e.stopPropagation()
+    handleButtonClick(false)
+  }
+  const onChooseSignIn = (e) => {
+    if (choosingRef.current) return
+    choosingRef.current = true
+    setTimeout(() => { choosingRef.current = false }, 400)
+    e.preventDefault()
+    e.stopPropagation()
+    handleButtonClick(true)
   }
 
   const handleEmailSubmit = async (e) => {
@@ -121,96 +141,118 @@ export default function SignIn({ onBack }) {
             <button
               type="button"
               className="signin-btn signin-btn-primary"
-              onClick={() => handleButtonClick(false)}
+              onPointerUp={onChooseCreateAccount}
+              onClick={onChooseCreateAccount}
               disabled={loading}
+              aria-label="Create Account"
             >
               Create Account
             </button>
             <button
               type="button"
               className="signin-btn signin-btn-secondary"
-              onClick={() => handleButtonClick(true)}
+              onPointerUp={onChooseSignIn}
+              onClick={onChooseSignIn}
               disabled={loading}
+              aria-label="Sign In"
             >
               Sign In
             </button>
           </div>
         </div>
-      ) : (
-        <div className="signin-card">
-          {message.text && (
-            <div className={`signin-message signin-message--${message.type}`}>
-              {message.text}
-            </div>
-          )}
-          <form className="signin-form" onSubmit={handleEmailSubmit}>
-            <label className="signin-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              className="signin-input"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              disabled={loading}
-              autoFocus
-            />
-            <label className="signin-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="signin-input"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={isSignIn ? 'current-password' : 'new-password'}
-              disabled={loading}
-            />
-            <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
-              {loading 
-                ? (isSignIn ? 'Signing in…' : 'Creating account…') 
-                : (isSignIn ? 'Sign In' : 'Create Account')
-              }
-            </button>
-            
-            <button
-              type="button"
-              className="signin-link"
-              onClick={() => {
-                setShowForm(false)
-                setEmail('')
-                setPassword('')
-                setMessage({ type: '', text: '' })
-              }}
-              disabled={loading}
-            >
-              ← Back
-            </button>
-          </form>
-
-          <div className="signin-legal">
-            By tapping Sign in or Create account, you agree to our{' '}
-            <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. 
-            Learn how we process your data in our{' '}
-            <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
-          </div>
-
-          <div className="signin-footer">
-            {onBack ? (
-              <button type="button" className="signin-back" onClick={onBack}>
-                Cancel
-              </button>
-            ) : (
-              <Link to="/" className="signin-back">
-                Cancel
-              </Link>
+      ) : onBack ? (
+        /* Bottom sheet: form fades in and replaces the buttons */
+        <div className="signin-sheet-form" role="dialog" aria-label={isSignIn ? 'Sign in' : 'Create account'}>
+          <div className="signin-card" ref={formCardRef}>
+            <h2 className="signin-form-title">{isSignIn ? 'Sign in' : 'Create account'}</h2>
+            {message.text && (
+              <div className={`signin-message signin-message--${message.type}`}>
+                {message.text}
+              </div>
             )}
-            <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
+            <form className="signin-form" onSubmit={handleEmailSubmit}>
+              <label className="signin-label" htmlFor="signin-email">Email</label>
+              <input
+                id="signin-email"
+                type="email"
+                className="signin-input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                disabled={loading}
+                autoFocus
+              />
+              <label className="signin-label" htmlFor="signin-password">Password</label>
+              <input
+                id="signin-password"
+                type="password"
+                className="signin-input"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isSignIn ? 'current-password' : 'new-password'}
+                disabled={loading}
+              />
+              <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
+                {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
+              </button>
+              <button
+                type="button"
+                className="signin-link"
+                onClick={() => {
+                  if (onBack) {
+                    onBack()
+                  } else {
+                    setShowForm(false)
+                    setEmail('')
+                    setPassword('')
+                    setMessage({ type: '', text: '' })
+                  }
+                }}
+                disabled={loading}
+              >
+                ← Back
+              </button>
+            </form>
+            <div className="signin-legal">
+              By tapping Sign in or Create account, you agree to our{' '}
+              <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our{' '}
+              <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
+            </div>
+            <div className="signin-footer">
+              <button type="button" className="signin-back" onClick={onBack}>Cancel</button>
+              <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Full-page /signin: fixed overlay */
+        <div className="signin-form-overlay" role="dialog" aria-label={isSignIn ? 'Sign in' : 'Create account'}>
+          <div className="signin-form-overlay-inner">
+            <div className="signin-card" ref={formCardRef}>
+              <h2 className="signin-form-title">{isSignIn ? 'Sign in' : 'Create account'}</h2>
+              {message.text && (
+                <div className={`signin-message signin-message--${message.type}`}>{message.text}</div>
+              )}
+              <form className="signin-form" onSubmit={handleEmailSubmit}>
+                <label className="signin-label" htmlFor="signin-email-page">Email</label>
+                <input id="signin-email-page" type="email" className="signin-input" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={loading} autoFocus />
+                <label className="signin-label" htmlFor="signin-password-page">Password</label>
+                <input id="signin-password-page" type="password" className="signin-input" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={isSignIn ? 'current-password' : 'new-password'} disabled={loading} />
+                <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
+                  {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
+                </button>
+                <button type="button" className="signin-link" onClick={() => { setShowForm(false); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
+              </form>
+              <div className="signin-legal">
+                By tapping Sign in or Create account, you agree to our <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
+              </div>
+              <div className="signin-footer">
+                <Link to="/" className="signin-back">Cancel</Link>
+                <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
+              </div>
+            </div>
           </div>
         </div>
       )}

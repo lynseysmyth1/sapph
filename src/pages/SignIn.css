@@ -11,12 +11,94 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .signin-in-overlay {
   background: transparent;
   justify-content: center;
+}
+
+/* Form view: fixed full-screen overlay so form is always on top, no scroll */
+.signin-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background-image: url('/images/splash.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Bottom-sheet form (from Splash): staggered – title, then fields, then legal, then footer */
+.signin-sheet-form .signin-form-title {
+  opacity: 0;
+  animation: signin-sheet-stagger-in 0.35s ease-out 0ms forwards;
+}
+.signin-sheet-form .signin-form {
+  opacity: 0;
+  animation: signin-sheet-stagger-in 0.35s ease-out 100ms forwards;
+}
+.signin-sheet-form .signin-legal {
+  opacity: 0;
+  animation: signin-sheet-stagger-in 0.35s ease-out 200ms forwards;
+}
+.signin-sheet-form .signin-footer {
+  opacity: 0;
+  animation: signin-sheet-stagger-in 0.35s ease-out 300ms forwards;
+}
+
+@keyframes signin-sheet-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.signin-sheet-form .signin-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 1.5rem 1.25rem;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
+}
+
+.signin-form-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(232, 93, 44, 0.45);
+  pointer-events: none;
+}
+
+.signin-form-overlay-inner {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem 2rem;
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.signin-form-overlay .signin-card {
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  flex-shrink: 0;
 }
 
 .signin-overlay {
@@ -66,6 +148,13 @@
   min-height: 0;
 }
 
+.signin-form-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sapph-dark, #333);
+  margin: 0 0 1rem;
+}
+
 .signin-card {
   position: relative;
   z-index: 1;
@@ -78,6 +167,7 @@
   padding: 2rem;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .signin-footer {
@@ -196,6 +286,8 @@
   transition: opacity 0.2s, transform 0.1s;
   cursor: pointer;
   font-family: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
 .signin-btn:hover:not(:disabled) {
