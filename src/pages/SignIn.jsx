@@ -37,11 +37,11 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
   const formCardRef = useRef(null)
   const choosingRef = useRef(false)
 
-  // If already signed in, go to home or onboarding
+  // If already signed in, go to home
   useEffect(() => {
     if (authLoading || !user) return
-    navigate(profile?.onboarding_completed ? '/home' : '/onboarding', { replace: true })
-  }, [user, profile, authLoading, navigate])
+    navigate('/home', { replace: true })
+  }, [user, authLoading, navigate])
 
 
   const showMessage = (type, text) => {

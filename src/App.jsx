@@ -21,16 +21,10 @@ import Chat from './pages/Chat'
 import TestFirebase from './pages/TestFirebase'
 
 function ProtectedRoute({ children }) {
-  const { user, profile, loading } = useAuth()
-  const { pathname } = useLocation()
+  const { user, loading } = useAuth()
 
   if (loading) return <div className="app-loading">Loading…</div>
   if (!user) return <Navigate to="/signin" replace />
-
-  // New user or incomplete profile → onboarding
-  if (user && !profile?.onboarding_completed && pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />
-  }
 
   return children
 }
