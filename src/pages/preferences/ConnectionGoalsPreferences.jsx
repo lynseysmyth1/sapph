@@ -68,7 +68,10 @@ export default function ConnectionGoalsPreferences() {
         
         <div className="checkbox-list">
           {CONNECTION_GOALS_OPTIONS.map((goal) => (
-            <label key={goal} className="checkbox-item">
+            <label
+              key={goal}
+              className={`checkbox-item ${selectedGoals.includes(goal) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={selectedGoals.includes(goal)}

@@ -470,7 +470,7 @@
 
 .grid-label {
   font-family: 'Prompt', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--sapph-orange);
   text-transform: uppercase;
@@ -479,7 +479,7 @@
 
 .grid-value {
   font-family: 'Lato', sans-serif;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--sapph-text-body);
   font-weight: 400;
 }
@@ -848,11 +848,19 @@
   background: white;
   border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .checkbox-item:hover {
   background-color: #fafafa;
+}
+
+.checkbox-item.selected {
+  background-color: #fef0ec;
+}
+
+.checkbox-item.selected .checkbox-label {
+  color: var(--sapph-orange);
 }
 
 .checkbox-item input[type="checkbox"] {
@@ -863,9 +871,9 @@
 }
 
 .checkbox-label {
-  font-family: 'Prompt', sans-serif;
+  font-family: 'Lato', sans-serif;
   font-size: 1rem;
-  color: #333;
+  color: var(--sapph-text-body);
   flex: 1;
 }
 

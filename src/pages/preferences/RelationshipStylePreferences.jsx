@@ -67,7 +67,10 @@ export default function RelationshipStylePreferences() {
         
         <div className="checkbox-list">
           {RELATIONSHIP_STYLE_OPTIONS.map((style) => (
-            <label key={style} className="checkbox-item">
+            <label
+              key={style}
+              className={`checkbox-item ${selectedStyles.includes(style) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={selectedStyles.includes(style)}

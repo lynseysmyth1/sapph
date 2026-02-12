@@ -69,7 +69,10 @@ export default function InterestsPreferences() {
         
         <div className="checkbox-list">
           {INTERESTS_OPTIONS.map((interest) => (
-            <label key={interest} className="checkbox-item">
+            <label
+              key={interest}
+              className={`checkbox-item ${selectedInterests.includes(interest) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={selectedInterests.includes(interest)}

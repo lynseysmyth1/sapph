@@ -72,7 +72,10 @@ export default function FamilyPlansPreferences() {
         
         <div className="checkbox-list">
           {FAMILY_PLANS_OPTIONS.map((plan) => (
-            <label key={plan} className="checkbox-item">
+            <label
+              key={plan}
+              className={`checkbox-item ${selectedPlans.includes(plan) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={selectedPlans.includes(plan)}

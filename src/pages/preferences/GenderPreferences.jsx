@@ -69,7 +69,10 @@ export default function GenderPreferences() {
         
         <div className="checkbox-list">
           {GENDER_OPTIONS.map((gender) => (
-            <label key={gender} className="checkbox-item">
+            <label
+              key={gender}
+              className={`checkbox-item ${selectedGenders.includes(gender) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={selectedGenders.includes(gender)}
