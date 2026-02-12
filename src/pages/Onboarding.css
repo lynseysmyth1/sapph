@@ -192,9 +192,9 @@
   margin-bottom: 0.5rem;
 }
 
+/* Remove special styling - Finish button should look exactly like Next button */
 .btn-finish {
-  flex: 1;
-  width: 100%;
+  /* No special styles - inherits from .btn-next */
 }
 
 /* Intro Divider Pages – Branding Update */
@@ -243,8 +243,10 @@
 
 .step-completion-with-cta .completion-cta {
   margin-top: 2.5rem;
-  min-width: 200px;
-  padding: 1rem 2rem;
+  /* Make it look exactly like the Next button - prevent flex stretching */
+  flex: 0 0 auto;
+  width: auto;
+  align-self: center;
 }
 
 .theme-divider .onboarding-footer {
@@ -290,6 +292,7 @@
   font-size: 0.9rem;
   color: #888888;
   margin: 1.5rem 0 0;
+  font-weight: bold;
 }
 
 .visibility-toggle {
@@ -566,6 +569,11 @@
   background-color: var(--sapph-orange);
   color: white;
   border: none;
+}
+
+/* When btn-next is used standalone (not in footer), don't use flex stretching */
+.step-completion-with-cta .btn-next {
+  flex: 0 0 auto;
 }
 
 .btn-next:hover {

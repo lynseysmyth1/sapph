@@ -162,6 +162,12 @@ export default function Home() {
     setPassedUserIds(prev => prev.slice(0, -1))
   }
 
+  const handleReloadAllProfiles = () => {
+    // Reset passedUserIds to empty array, which will trigger useEffect to reload all profiles
+    setPassedUserIds([])
+    setLoading(true)
+  }
+
   // Touch handlers for swipe gestures
   const minSwipeDistance = 50
 
@@ -274,11 +280,31 @@ export default function Home() {
       <div className="home-container">
         <main className="profile-card">
           <div className="profile-loading">
-            <div>
-              <p>No more profiles to show right now</p>
-              <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '8px' }}>
-                Check back later for new people!
+            <div style={{ textAlign: 'center' }}>
+              <p>No more new profiles to view right now.</p>
+              <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '8px', marginBottom: '1.5rem' }}>
+                Would you like to see all profiles again?
               </p>
+              <button 
+                onClick={handleReloadAllProfiles}
+                disabled={loading}
+                className="reload-profiles-btn"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  backgroundColor: 'var(--sapph-orange)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  fontWeight: '500',
+                  display: 'block',
+                  margin: '0 auto'
+                }}
+              >
+                {loading ? 'Loading...' : 'See All Profiles Again'}
+              </button>
             </div>
           </div>
         </main>
@@ -287,26 +313,22 @@ export default function Home() {
             <svg viewBox="0 0 24 24" fill="currentColor" className="nav-icon">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
             </svg>
-            <span>Home</span>
           </Link>
           <Link to="/likes" className={`nav-item ${pathname === '/likes' ? 'active' : ''}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
-            <span>Likes</span>
           </Link>
           <Link to="/messages" className={`nav-item ${pathname === '/messages' || pathname.startsWith('/chat') ? 'active' : ''}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            <span>Chat</span>
           </Link>
-          <Link to="/home" className="nav-item">
+          <Link to="/profile" className={`nav-item ${pathname === '/profile' ? 'active' : ''}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <span>Profile</span>
           </Link>
         </nav>
       </div>
@@ -567,26 +589,22 @@ export default function Home() {
           <svg viewBox="0 0 24 24" fill="currentColor" className="nav-icon">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
-          <span>Home</span>
         </Link>
         <Link to="/likes" className={`nav-item ${pathname === '/likes' ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
-          <span>Likes</span>
         </Link>
         <Link to="/messages" className={`nav-item ${pathname === '/messages' || pathname.startsWith('/chat') ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
-          <span>Chat</span>
         </Link>
         <Link to="/profile" className={`nav-item ${pathname === '/profile' ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
-          <span>Profile</span>
         </Link>
       </nav>
     </div>

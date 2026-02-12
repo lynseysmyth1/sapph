@@ -169,6 +169,8 @@ If you see **3 issues** for the App target:
 When running on a physical device you may see:
 - **"Could not create a sandbox extension for .../App.app"** – Common on device/simulator; often benign. If the app runs normally, no action needed.
 - **"WebContent[...] Unable to hide query parameters from script (missing data)"** – WebKit/Capacitor message when loading the in-app web view. Does not affect app behavior.
+- **"Unable to simultaneously satisfy constraints"** (ButtonWrapper / _UIButtonBarButton / width == 0) – Comes from iOS keyboard/input bar, not your app. UIKit recovers by breaking a constraint. Safe to ignore.
+- **"UIInputViewSetPlacementInvisible" / "RTIInputSystemClient ... session"** – Keyboard/input system messages when the keyboard appears or dismisses. Do not affect app behavior.
 
 ## Quick Commands Reference
 

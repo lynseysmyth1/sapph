@@ -59,30 +59,23 @@ export function AuthProvider({ children }) {
       clearTimeout(loadingTimeout)
 
       if (firebaseUser) {
-        // User is signed in
         setUser({
           id: firebaseUser.uid,
           email: firebaseUser.email,
           emailVerified: firebaseUser.emailVerified
         })
-        
-        // Update online status
+        setLoading(false)
         updatePresence(firebaseUser.uid, true).catch(err => {
           console.error('Error updating presence:', err)
         })
-        
-        setLoading(true)
-        try {
-          await fetchProfile(firebaseUser.uid)
-          if (mountedRef.current) {
-            const path = window.location.pathname
-            if (path === '/signin' || path === '/enter' || path === '/') {
-              navigate('/home', { replace: true })
-            }
-          }
-        } finally {
-          if (mountedRef.current) setLoading(false)
-        }
+        Promise.race([
+          fetchProfile(firebaseUser.uid),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]).then((profileData) => {
+          if (mountedRef.current && profileData) setProfile(profileData)
+        }).catch(() => {
+          if (mountedRef.current) setProfile({ id: firebaseUser.uid, onboarding_completed: false })
+        })
       } else {
         // User is signed out
         // Update offline status before clearing user

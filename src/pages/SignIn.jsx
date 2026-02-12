@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { auth } from '../lib/firebase'
 import './SignIn.css'
@@ -85,15 +86,21 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
     setMessage({ type: '', text: '' })
     try {
       if (isSignIn) {
-        // Sign in mode
         await signInWithEmailAndPassword(auth, email.trim(), password.trim())
-        // Successfully signed in - AuthContext will handle navigation
+        if (onBack) onBack()
+        if (Capacitor.isNativePlatform()) {
+          window.location.hash = '#/home'
+          setTimeout(() => window.location.reload(), 100)
+        }
         return
       } else {
-        // Create account mode
         await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
         showMessage('success', 'Account created! Signing you in...')
-        // AuthContext will handle navigation
+        if (onBack) onBack()
+        if (Capacitor.isNativePlatform()) {
+          window.location.hash = '#/home'
+          setTimeout(() => window.location.reload(), 100)
+        }
         return
       }
     } catch (err) {
