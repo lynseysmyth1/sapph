@@ -17,8 +17,9 @@ const ONBOARDING_STEPS = [
   { type: 'text', id: 'height', label: "What's your height?", placeholder: "e.g. 5'6\"", required: true },
   { type: 'text', id: 'location', label: 'Where do you live?', placeholder: 'City and area', required: true },
   { type: 'text', id: 'hometown', label: "Where's your home town?", placeholder: 'City, Country', required: true },
-  { type: 'radio', id: 'children', label: 'Do you have children?', required: true, options: ["Childfree, don't want kids", 'Child free, dating people with children', 'Have children', "Have children, don't want more", 'Have children, open to more', 'Want children', 'Prefer not to say'] },
+  { type: 'radio', id: 'children', label: 'Do you have children?', required: true, options: ['Childfree, not having children', 'Child free, dating people with children', 'Have children', "Have children, don't want more", 'Have children, open to more', 'Want children', 'Prefer not to say'] },
   { type: 'text', id: 'job_title', label: "What's your job title?", placeholder: 'What do you do?', required: true },
+  { type: 'radio', id: 'political_alignment', label: 'What is your political alignment?', required: true, options: ['Progressive', 'Liberal', 'Center left', 'Centrist', 'Center right', 'Conservative', 'Not political'] },
   { type: 'intro', id: 'intro_profile', body: "Now let's build out your profile details" },
   { type: 'photos', id: 'photos', label: "Add up to 6 photos — optional (headshot first recommended)", hint: 'Minimum 4 pictures required', min: 4, max: 6, required: true },
   { type: 'textarea', id: 'bio', label: "Next we'd love you to tell people a little bit more about yourself with a short bio.", hint: 'Let people know a little about you, what you love in life and how you spend your time.', placeholder: 'Write your bio...', maxLength: 500, required: true },
@@ -30,7 +31,7 @@ const ONBOARDING_STEPS = [
     { id: 'smoking', label: 'Smoking', type: 'radio', required: true, options: ['No', 'Sometimes', 'Vape', 'Yes'] },
     { id: 'drinking', label: 'Drinking', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
     { id: 'marijuana', label: 'Weed', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
-    { id: 'drugs', label: 'Drugs', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
+    { id: 'drugs', label: 'Other drugs', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
   ]},
   { type: 'checkbox', id: 'pets', label: "Pets are an important part of our lives — we'd love to know if you have any", required: true, options: ['Birds', 'Cat', 'Dog', 'Fish', 'No pets', 'Reptile', 'Small animal'] },
   { type: 'radio', id: 'zodiac_sign', label: "Finally we'd love to know what zodiac sign you are", hint: "We all know this is key in any queer relationship ✨", required: true, options: ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] },
@@ -42,7 +43,7 @@ const ONBOARDING_STEPS = [
 
 const UPLOAD_TIMEOUT_MS = 60000;   // 60s for photo uploads
 const PROFILE_FIELDS = [
-  'full_name', 'dob', 'height', 'location', 'hometown', 'ethnicity', 'job_title', 'children',
+  'full_name', 'dob', 'height', 'location', 'hometown', 'ethnicity', 'job_title', 'political_alignment', 'children',
   'zodiac_sign', 'politics', 'drinking', 'smoking', 'marijuana', 'drugs', 'gender_identity',
   'gender_expression', 'sexual_identity', 'bio', 'conversation_starter', 'onboarding_completed',
   'photos', 'pronouns', 'connection_goals', 'relationship_style', 'sex_preferences', 'kinks',

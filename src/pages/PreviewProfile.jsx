@@ -90,15 +90,13 @@ export default function PreviewProfile() {
 
   const age = profile.dob ? formatValue(profile.dob, 'dob') : null
   
-  // Construct info line: 30 | She/Her | Non binary | Queer | Femme | 5'3" | London, Bow
+  // Construct info line: 30 | She/Her | Non binary | Queer | Femme
   const infoParts = [
     showField('dob') && age,
     showField('pronouns') && profile.pronouns?.length > 0 && profile.pronouns.join('/'),
     showField('gender_identity') && profile.gender_identity,
     showField('sexual_identity') && profile.sexual_identity,
-    showField('gender_expression') && profile.gender_expression,
-    showField('height') && profile.height,
-    showField('location') && profile.location
+    showField('gender_expression') && profile.gender_expression
   ].filter(Boolean)
 
   const infoLine = infoParts.join(' | ')
@@ -247,95 +245,139 @@ export default function PreviewProfile() {
               </div>
             )}
 
-            {/* About Me Section - Minimalist Editorial Grid */}
+            {/* About Me Section - Grouped Categories */}
             <div className="profile-section">
               <h3 className="section-header">ABOUT ME:</h3>
-              <div className="minimal-grid">
-                {showField('job_title') && profile.job_title && (
-                  <div className="grid-item">
-                    <span className="grid-label">JOB</span>
-                    <span className="grid-value">{profile.job_title}</span>
+              
+              {/* WORK & LIFE Category */}
+              {((showField('job_title') && profile.job_title) || 
+                (showField('location') && profile.location) || 
+                (showField('hometown') && profile.hometown) || 
+                (showField('pets') && profile.pets && profile.pets.length > 0)) && (
+                <div className="about-me-category">
+                  <h4 className="category-label">WORK & LIFE</h4>
+                  <div className="category-items">
+                    {showField('job_title') && profile.job_title && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Job</span>
+                        <span className="category-value">{profile.job_title}</span>
+                      </span>
+                    )}
+                    {showField('location') && profile.location && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Lives in</span>
+                        <span className="category-value">{profile.location}</span>
+                      </span>
+                    )}
+                    {showField('hometown') && profile.hometown && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">From</span>
+                        <span className="category-value">{profile.hometown}</span>
+                      </span>
+                    )}
+                    {showField('pets') && profile.pets && profile.pets.length > 0 && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Pets</span>
+                        <span className="category-value">{(Array.isArray(profile.pets) ? profile.pets : [profile.pets]).join(', ')}</span>
+                      </span>
+                    )}
                   </div>
-                )}
-                {showField('children') && profile.children && (
-                  <div className="grid-item">
-                    <span className="grid-label">KIDS</span>
-                    <span className="grid-value">{profile.children}</span>
+                </div>
+              )}
+
+              {/* IDENTITY Category */}
+              {((showField('political_alignment') && profile.political_alignment) || 
+                (showField('zodiac_sign') && profile.zodiac_sign) || 
+                (showField('children') && profile.children) || 
+                (showField('height') && profile.height)) && (
+                <div className="about-me-category">
+                  <h4 className="category-label">IDENTITY</h4>
+                  <div className="category-items">
+                    {showField('height') && profile.height && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Height</span>
+                        <span className="category-value">{profile.height}</span>
+                      </span>
+                    )}
+                    {showField('children') && profile.children && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Kids</span>
+                        <span className="category-value">{profile.children}</span>
+                      </span>
+                    )}
+                    {showField('political_alignment') && profile.political_alignment && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Politics</span>
+                        <span className="category-value">{profile.political_alignment}</span>
+                      </span>
+                    )}
+                    {showField('zodiac_sign') && profile.zodiac_sign && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Zodiac</span>
+                        <span className="category-value">{profile.zodiac_sign}</span>
+                      </span>
+                    )}
                   </div>
-                )}
-                {showField('zodiac_sign') && profile.zodiac_sign && (
-                  <div className="grid-item">
-                    <span className="grid-label">ZODIAC</span>
-                    <span className="grid-value">{profile.zodiac_sign}</span>
-                  </div>
-                )}
-                {showField('hometown') && profile.hometown && (
-                  <div className="grid-item">
-                    <span className="grid-label">HOME</span>
-                    <span className="grid-value">{profile.hometown}</span>
-                  </div>
-                )}
-                {showField('pets') && profile.pets && profile.pets.length > 0 && (
-                  <div className="grid-item">
-                    <span className="grid-label">PETS</span>
-                    <span className="grid-value">{(Array.isArray(profile.pets) ? profile.pets : [profile.pets]).join(', ')}</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            {/* Vices Section - Minimalist Editorial Grid */}
+            {/* Vices Section - Grouped Category Style */}
             {(showField('smoking') || showField('drinking') || showField('marijuana') || showField('drugs')) && 
              (profile.smoking || profile.drinking || profile.marijuana || profile.drugs) && (
               <div className="profile-section">
                 <h3 className="section-header">VICES:</h3>
-                <div className="minimal-grid">
-                  {showField('smoking') && profile.smoking && (
-                    <div className="grid-item">
-                      <span className="grid-label">SMOKE</span>
-                      <span className="grid-value">{profile.smoking}</span>
-                    </div>
-                  )}
-                  {showField('drinking') && profile.drinking && (
-                    <div className="grid-item">
-                      <span className="grid-label">DRINK</span>
-                      <span className="grid-value">{profile.drinking}</span>
-                    </div>
-                  )}
-                  {showField('marijuana') && profile.marijuana && (
-                    <div className="grid-item">
-                      <span className="grid-label">WEED</span>
-                      <span className="grid-value">{profile.marijuana}</span>
-                    </div>
-                  )}
-                  {showField('drugs') && profile.drugs && (
-                    <div className="grid-item">
-                      <span className="grid-label">DRUGS</span>
-                      <span className="grid-value">{profile.drugs}</span>
-                    </div>
-                  )}
+                <div className="about-me-category">
+                  <div className="category-items">
+                    {showField('smoking') && profile.smoking && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Smoke</span>
+                        <span className="category-value">{profile.smoking}</span>
+                      </span>
+                    )}
+                    {showField('drinking') && profile.drinking && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Drink</span>
+                        <span className="category-value">{profile.drinking}</span>
+                      </span>
+                    )}
+                    {showField('marijuana') && profile.marijuana && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Weed</span>
+                        <span className="category-value">{profile.marijuana}</span>
+                      </span>
+                    )}
+                    {showField('drugs') && profile.drugs && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Other drugs</span>
+                        <span className="category-value">{profile.drugs}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Intimate Section - Minimalist Grid Style */}
+            {/* Intimate Section - Grouped Category Style */}
             {(showField('sex_preferences') || showField('kinks')) && 
              (profile.sex_preferences?.length > 0 || profile.kinks?.length > 0) && (
               <div className="profile-section">
                 <h3 className="section-header">INTIMACY:</h3>
-                <div className="minimal-grid">
-                  {showField('sex_preferences') && profile.sex_preferences?.length > 0 && (
-                    <div className="grid-item">
-                      <span className="grid-label">SEX PREFERENCE</span>
-                      <span className="grid-value">{profile.sex_preferences.join(', ')}</span>
-                    </div>
-                  )}
-                  {showField('kinks') && profile.kinks?.length > 0 && (
-                    <div className="grid-item">
-                      <span className="grid-label">KINKS</span>
-                      <span className="grid-value">{profile.kinks.join(', ')}</span>
-                    </div>
-                  )}
+                <div className="about-me-category">
+                  <div className="category-items">
+                    {showField('sex_preferences') && profile.sex_preferences?.length > 0 && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Sex preference</span>
+                        <span className="category-value">{profile.sex_preferences.join(', ')}</span>
+                      </span>
+                    )}
+                    {showField('kinks') && profile.kinks?.length > 0 && (
+                      <span className="category-item">
+                        <span className="category-label sentence-case">Kinks</span>
+                        <span className="category-value">{profile.kinks.join(', ')}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

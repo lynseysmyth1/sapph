@@ -464,13 +464,14 @@
 
 .grid-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .grid-label {
   font-family: 'Prompt', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--sapph-orange);
   text-transform: uppercase;
@@ -482,6 +483,71 @@
   font-size: 1.1rem;
   color: var(--sapph-text-body);
   font-weight: 400;
+}
+
+/* About Me Grouped Categories */
+.about-me-category {
+  margin-bottom: 24px;
+}
+
+.about-me-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-label {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sapph-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px 0;
+}
+
+.category-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+.category-item {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.category-items .category-label {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--sapph-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.category-items .category-label.sentence-case {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.category-value {
+  font-family: 'Lato', sans-serif;
+  font-size: 1.1rem;
+  color: var(--sapph-text-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.category-item:not(:last-child)::after {
+  content: ' •';
+  color: rgba(240, 107, 74, 0.6);
+  margin: 0 8px;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.1rem;
 }
 
 /* Profile Footer Actions */

@@ -6,7 +6,7 @@ import { db } from '../../lib/firebase'
 import '../Profile.css'
 
 const FAMILY_PLANS_OPTIONS = [
-  "Childfree, don't want kids",
+  'Childfree, not having children',
   'Child free, dating people with children',
   'Have children',
   "Have children, don't want more",

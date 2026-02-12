@@ -149,7 +149,14 @@ export default function Messages() {
             <div className="messages-loading">Loading conversations...</div>
           ) : conversations.length === 0 ? (
             <div className="messages-empty">
-              <p>No {activeTab === 'heart' ? 'heart' : 'friendship'} conversations yet</p>
+              <div className="messages-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </div>
+              <p className="messages-empty-heading">No conversations yet</p>
+              <p className="messages-empty-text">When someone messages you, they'll show up here.</p>
             </div>
           ) : (
             <div className="conversations-list">

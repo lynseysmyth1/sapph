@@ -69,7 +69,7 @@ export default function Likes() {
     <div className="likes-container">
       <main className="likes-main">
         <header className="likes-header">
-          <h1 className="likes-title">Likes</h1>
+          <h1 className="likes-title">Matches</h1>
         </header>
 
         {/* Tabs */}
@@ -107,8 +107,8 @@ export default function Likes() {
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </div>
-              <p className="likes-empty-heading">No likes yet</p>
-              <p className="likes-empty-text">When someone likes you, they'll show up here.</p>
+              <p className="likes-empty-heading">No matches yet</p>
+              <p className="likes-empty-text">When someone matches with you, they'll show up here.</p>
             </div>
           ) : (
             <div className="likes-list">
