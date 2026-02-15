@@ -316,6 +316,77 @@
   border: 2px solid white;
 }
 
+.signin-content-method .signin-buttons {
+  gap: 0.875rem;
+}
+
+.signin-btn-back {
+  background: transparent;
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.25rem;
+}
+
+.signin-btn-back:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.signin-btn-method {
+  font-size: 1rem;
+}
+
+.signin-btn-email {
+  background: white;
+  color: var(--sapph-orange);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.signin-btn-email:hover:not(:disabled) {
+  background: #fff5f2;
+}
+
+.signin-btn-email-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.signin-divider {
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0.25rem 0;
+}
+
+.signin-btn-apple {
+  background: white;
+  color: #000;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.signin-btn-apple:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.signin-btn-google {
+  background: white;
+  color: #333;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+}
+
+.signin-btn-google:hover:not(:disabled) {
+  background: #f9f9f9;
+}
+
 .signin-btn-submit {
   background: var(--sapph-orange);
   color: white;
@@ -384,6 +455,53 @@
   outline: none;
   border-color: var(--sapph-orange);
   box-shadow: 0 0 0 3px rgba(232, 93, 44, 0.15);
+}
+
+.signin-password-row {
+  position: relative;
+  width: 100%;
+}
+
+.signin-input-password {
+  padding-right: 2.75rem;
+}
+
+.signin-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.signin-toggle-btn:hover:not(:disabled) {
+  color: #555;
+}
+
+.signin-toggle-btn:focus {
+  outline: 2px solid var(--sapph-orange);
+  outline-offset: 2px;
+}
+
+.signin-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.signin-toggle-icon {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .signin-link {

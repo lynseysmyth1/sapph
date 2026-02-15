@@ -64,5 +64,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to upload profile photos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select profile photos</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby matches</string>
 </dict>
 </plist>

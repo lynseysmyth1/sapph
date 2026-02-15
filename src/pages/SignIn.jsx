@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
-import { auth } from '../lib/firebase'
+import { auth, signInWithGoogle, signInWithApple, isFirebaseConfigured } from '../lib/firebase'
 import './SignIn.css'
 
 const APPLE_ICON = (
@@ -25,17 +25,22 @@ const FACEBOOK_ICON = (
   </svg>
 )
 
-export default function SignIn({ onBack, initialShowForm = false, initialIsSignIn = true }) {
+export default function SignIn({ onBack, initialShowForm = false, initialStep, initialIsSignIn = true }) {
   const navigate = useNavigate()
   const { user, profile, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showForm, setShowForm] = useState(initialShowForm)
+  const [showPassword, setShowPassword] = useState(false)
+  // step: 'choice' (Create Account / Sign In) → 'method' (Email / Apple / Google) → 'form' (email+password)
+  const [step, setStep] = useState(initialStep === 'form' ? 'form' : (initialShowForm ? 'method' : 'choice'))
   const [isSignIn, setIsSignIn] = useState(initialIsSignIn)
   const [loading, setLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState(null) // 'apple' | 'google' | null
   const [message, setMessage] = useState({ type: '', text: '' })
   const formCardRef = useRef(null)
   const choosingRef = useRef(false)
+  // Always show Apple/Google buttons; show error on tap if Firebase not configured
+  const showSocial = true
 
   // If already signed in, go to home
   useEffect(() => {
@@ -49,9 +54,25 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
     setTimeout(() => setMessage({ type: '', text: '' }), 5000)
   }
 
+  const goToMethod = (signInMode) => {
+    setIsSignIn(signInMode)
+    setStep('method')
+    setMessage({ type: '', text: '' })
+  }
+
+  const goToChoice = () => {
+    setStep('choice')
+    setMessage({ type: '', text: '' })
+  }
+
+  const goToForm = () => {
+    setStep('form')
+    setMessage({ type: '', text: '' })
+  }
+
   const handleButtonClick = (signInMode) => {
     setIsSignIn(signInMode)
-    setShowForm(true)
+    setStep('method')
   }
 
   // Use pointer + click so taps work on iOS and desktop; guard avoids double fire
@@ -61,7 +82,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
     setTimeout(() => { choosingRef.current = false }, 400)
     e.preventDefault()
     e.stopPropagation()
-    handleButtonClick(false)
+    goToMethod(false)
   }
   const onChooseSignIn = (e) => {
     if (choosingRef.current) return
@@ -69,7 +90,55 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
     setTimeout(() => { choosingRef.current = false }, 400)
     e.preventDefault()
     e.stopPropagation()
-    handleButtonClick(true)
+    goToMethod(true)
+  }
+
+  const handleGoogle = async () => {
+    setMessage({ type: '', text: '' })
+    if (!isFirebaseConfigured()) {
+      showMessage('error', 'Google sign-in is not configured. Add Firebase keys to .env.')
+      return
+    }
+    setSocialLoading('google')
+    try {
+      await signInWithGoogle()
+      if (onBack) onBack()
+      if (Capacitor.isNativePlatform()) {
+        window.location.hash = '#/home'
+        setTimeout(() => window.location.reload(), 100)
+      } else {
+        navigate('/home', { replace: true })
+      }
+    } catch (err) {
+      const msg = err?.message || 'Google sign-in failed. Please try again.'
+      showMessage('error', msg)
+    } finally {
+      setSocialLoading(null)
+    }
+  }
+
+  const handleApple = async () => {
+    setMessage({ type: '', text: '' })
+    if (!isFirebaseConfigured()) {
+      showMessage('error', 'Apple sign-in is not configured. Add Firebase keys to .env.')
+      return
+    }
+    setSocialLoading('apple')
+    try {
+      await signInWithApple()
+      if (onBack) onBack()
+      if (Capacitor.isNativePlatform()) {
+        window.location.hash = '#/home'
+        setTimeout(() => window.location.reload(), 100)
+      } else {
+        navigate('/home', { replace: true })
+      }
+    } catch (err) {
+      const msg = err?.message || 'Apple sign-in failed. Please try again.'
+      showMessage('error', msg)
+    } finally {
+      setSocialLoading(null)
+    }
   }
 
   const handleEmailSubmit = async (e) => {
@@ -132,7 +201,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
         <div className="signin-overlay" aria-hidden="true" />
       )}
       
-      {!showForm ? (
+      {step === 'choice' && (
         <div className="signin-content">
           {!onBack && (
             <div className="signin-logo-wrap">
@@ -150,7 +219,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
               className="signin-btn signin-btn-primary"
               onPointerUp={onChooseCreateAccount}
               onClick={onChooseCreateAccount}
-              disabled={loading}
+              disabled={loading || socialLoading}
               aria-label="Create Account"
             >
               Create Account
@@ -160,14 +229,123 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
               className="signin-btn signin-btn-secondary"
               onPointerUp={onChooseSignIn}
               onClick={onChooseSignIn}
-              disabled={loading}
+              disabled={loading || socialLoading}
               aria-label="Sign In"
             >
               Sign In
             </button>
+            {showSocial && (
+              <>
+                <div className="signin-divider">or</div>
+                <button
+                  type="button"
+                  className="signin-btn signin-btn-google"
+                  onClick={handleGoogle}
+                  disabled={!!loading || !!socialLoading}
+                  aria-label="Continue with Google"
+                >
+                  {socialLoading === 'google' ? (
+                    <span>Signing in…</span>
+                  ) : (
+                    <>
+                      {GOOGLE_ICON}
+                      <span>Continue with Google</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="signin-btn signin-btn-apple"
+                  onClick={handleApple}
+                  disabled={!!loading || !!socialLoading}
+                  aria-label="Continue with Apple"
+                >
+                  {socialLoading === 'apple' ? (
+                    <span>Signing in…</span>
+                  ) : (
+                    <>
+                      {APPLE_ICON}
+                      <span>Continue with Apple</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
-      ) : onBack ? (
+      )}
+
+      {step === 'method' && (
+        <div className="signin-content signin-content-method">
+          {message.text && (
+            <div className={`signin-message signin-message--${message.type}`}>
+              {message.text}
+            </div>
+          )}
+          <div className="signin-buttons">
+            <button
+              type="button"
+              className="signin-btn signin-btn-back"
+              onClick={() => (onBack ? onBack() : goToChoice())}
+              disabled={!!loading || !!socialLoading}
+              aria-label="Back"
+            >
+              ← Back
+            </button>
+            <button
+              type="button"
+              className="signin-btn signin-btn-method signin-btn-email"
+              onClick={goToForm}
+              disabled={!!loading || !!socialLoading}
+              aria-label={isSignIn ? 'Sign in with email' : 'Create account with email'}
+            >
+              <svg className="signin-btn-email-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                <path d="M22 6L12 13 2 6" />
+              </svg>
+              <span>{isSignIn ? 'Sign in with email' : 'Create account with email'}</span>
+            </button>
+            {showSocial && (
+              <>
+                <button
+                  type="button"
+                  className="signin-btn signin-btn-method signin-btn-google"
+                  onClick={handleGoogle}
+                  disabled={!!loading || !!socialLoading}
+                  aria-label="Continue with Google"
+                >
+                  {socialLoading === 'google' ? (
+                    <span>Signing in…</span>
+                  ) : (
+                    <>
+                      {GOOGLE_ICON}
+                      <span>Continue with Google</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="signin-btn signin-btn-method signin-btn-apple"
+                  onClick={handleApple}
+                  disabled={!!loading || !!socialLoading}
+                  aria-label="Continue with Apple"
+                >
+                  {socialLoading === 'apple' ? (
+                    <span>Signing in…</span>
+                  ) : (
+                    <>
+                      {APPLE_ICON}
+                      <span>Continue with Apple</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {step === 'form' && onBack ? (
         /* Bottom sheet: form fades in and replaces the buttons */
         <div className="signin-sheet-form" role="dialog" aria-label={isSignIn ? 'Sign in' : 'Create account'}>
           <div className="signin-card" ref={formCardRef}>
@@ -191,16 +369,37 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
                 autoFocus
               />
               <label className="signin-label" htmlFor="signin-password">Password</label>
-              <input
-                id="signin-password"
-                type="password"
-                className="signin-input"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isSignIn ? 'current-password' : 'new-password'}
-                disabled={loading}
-              />
+              <div className="signin-password-row">
+                <input
+                  id="signin-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="signin-input signin-input-password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignIn ? 'current-password' : 'new-password'}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="signin-toggle-btn"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={loading}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg className="signin-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg className="signin-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
                 {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
               </button>
@@ -208,10 +407,10 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
                 type="button"
                 className="signin-link"
                 onClick={() => {
-                  if (onBack) {
+                  if (onBack && initialStep === 'form') {
                     onBack()
                   } else {
-                    setShowForm(false)
+                    setStep('method')
                     setEmail('')
                     setPassword('')
                     setMessage({ type: '', text: '' })
@@ -229,11 +428,10 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
             </div>
             <div className="signin-footer">
               <button type="button" className="signin-back" onClick={onBack}>Cancel</button>
-              <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
             </div>
           </div>
         </div>
-      ) : (
+      ) : step === 'form' && !onBack ? (
         /* Full-page /signin: fixed overlay */
         <div className="signin-form-overlay" role="dialog" aria-label={isSignIn ? 'Sign in' : 'Create account'}>
           <div className="signin-form-overlay-inner">
@@ -246,23 +444,37 @@ export default function SignIn({ onBack, initialShowForm = false, initialIsSignI
                 <label className="signin-label" htmlFor="signin-email-page">Email</label>
                 <input id="signin-email-page" type="email" className="signin-input" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={loading} autoFocus />
                 <label className="signin-label" htmlFor="signin-password-page">Password</label>
-                <input id="signin-password-page" type="password" className="signin-input" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={isSignIn ? 'current-password' : 'new-password'} disabled={loading} />
+                <div className="signin-password-row">
+                  <input id="signin-password-page" type={showPassword ? 'text' : 'password'} className="signin-input signin-input-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={isSignIn ? 'current-password' : 'new-password'} disabled={loading} />
+                  <button type="button" className="signin-toggle-btn" onClick={() => setShowPassword((prev) => !prev)} disabled={loading} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    {showPassword ? (
+                      <svg className="signin-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg className="signin-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
                 <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
                   {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
                 </button>
-                <button type="button" className="signin-link" onClick={() => { setShowForm(false); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
+                <button type="button" className="signin-link" onClick={() => { setStep('method'); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
               </form>
               <div className="signin-legal">
                 By tapping Sign in or Create account, you agree to our <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
               </div>
               <div className="signin-footer">
                 <Link to="/" className="signin-back">Cancel</Link>
-                <Link to="/test-firebase" className="signin-test-link">Test Firebase connection</Link>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

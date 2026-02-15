@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
@@ -26,5 +26,19 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
+
+export function isFirebaseConfigured() {
+  return !!(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId)
+}
+
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider()
+  return signInWithPopup(auth, provider)
+}
+
+export async function signInWithApple() {
+  const provider = new OAuthProvider('apple.com')
+  return signInWithPopup(auth, provider)
+}
 
 export default app
