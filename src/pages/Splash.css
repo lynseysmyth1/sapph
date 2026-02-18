@@ -70,12 +70,16 @@
   justify-content: center;
   width: 100%;
   max-width: 320px;
+  min-height: 44px;
   padding: 1rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
+  font-family: 'Prompt', sans-serif;
   border-radius: var(--radius);
   text-decoration: none;
   transition: opacity 0.2s, transform 0.1s;
+  cursor: pointer;
+  border: none;
 }
 
 .splash-btn:hover {
@@ -219,13 +223,13 @@
   border-radius: 6px;
 }
 
-/* Sign-in overlay – fades in and blurs background */
+/* Sign-in overlay – when hidden, sit behind content so Create Account / Sign In stay tappable */
 .splash-signin-overlay {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 0;
   display: flex;
-  align-items: flex-end; /* Align sheet to bottom */
+  align-items: flex-end;
   justify-content: center;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
@@ -237,6 +241,7 @@
 }
 
 .splash-signin-overlay.is-visible {
+  z-index: 20;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -270,6 +275,23 @@
 
 .splash-signin-overlay.is-visible .splash-signin-sheet {
   transform: translateY(0);
+}
+
+.splash-sheet-loading {
+  padding: 1.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.splash-native-hint {
+  width: 100%;
+  max-width: 320px;
+  margin: 0.5rem 0 0;
+  padding: 0 0.25rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
 }
 
 .sheet-handle {

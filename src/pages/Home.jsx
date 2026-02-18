@@ -79,6 +79,13 @@ export default function Home() {
   const profileSaveWarning = location.state?.profileSaveWarning
   const dismissSaveWarning = () => navigate('.', { replace: true, state: {} })
 
+  // New users: send to onboarding so they complete profile before discovery
+  useEffect(() => {
+    if (user?.id && profile && profile.onboarding_completed === false) {
+      navigate('/onboarding', { replace: true })
+    }
+  }, [user?.id, profile, navigate])
+
   // Load discovery profiles
   useEffect(() => {
     if (!user?.id || !profile?.onboarding_completed) return

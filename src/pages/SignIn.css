@@ -238,6 +238,7 @@
 .signin-message--success {
   background: rgba(76, 175, 80, 0.2);
   border-color: rgba(76, 175, 80, 0.3);
+  color: var(--sapph-text-body, #555555);
 }
 
 .signin-message--error {
@@ -276,6 +277,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Prompt', sans-serif;
   gap: 0.75rem;
   width: 100%;
   padding: 1rem 1.5rem;
@@ -516,4 +518,37 @@
 
 .signin-link:hover {
   color: var(--sapph-orange);
+}
+
+.signin-forgot-link {
+  display: block;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--sapph-orange);
+  margin-top: 0.5rem;
+  padding: 0;
+  cursor: pointer;
+  text-align: right;
+}
+
+.signin-forgot-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.signin-forgot-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.signin-forgot-hint {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 0 1rem;
+}
+.signin-create-hint {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
 }

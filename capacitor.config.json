@@ -3,6 +3,12 @@
   "appName": "Sapph",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "url": "https://sapph-b4f8e.web.app",
+    "cleartext": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
   }
 }

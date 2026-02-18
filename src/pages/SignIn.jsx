@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
-import { Capacitor } from '@capacitor/core'
+import { signInWithEmailAndPassword, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth'
+import { Capacitor, CapacitorHttp } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
-import { auth, signInWithGoogle, signInWithApple, isFirebaseConfigured } from '../lib/firebase'
+import { auth, signInWithGoogle, signInWithApple, isFirebaseConfigured, createAccountWithTokenCallable, getCreateAccountCallableUrl } from '../lib/firebase'
 import './SignIn.css'
 
 const APPLE_ICON = (
@@ -31,7 +31,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  // step: 'choice' (Create Account / Sign In) → 'method' (Email / Apple / Google) → 'form' (email+password)
+  // step: 'choice' | 'method' | 'form' (email+password) | 'forgot' (reset password)
   const [step, setStep] = useState(initialStep === 'form' ? 'form' : (initialShowForm ? 'method' : 'choice'))
   const [isSignIn, setIsSignIn] = useState(initialIsSignIn)
   const [loading, setLoading] = useState(false)
@@ -141,6 +141,33 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
     }
   }
 
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault()
+    if (!email.trim()) {
+      showMessage('error', 'Please enter your email')
+      return
+    }
+    setLoading(true)
+    setMessage({ type: '', text: '' })
+    try {
+      await sendPasswordResetEmail(auth, email.trim())
+      showMessage('success', 'Check your email for a link to reset your password. If you don’t see it, check spam.')
+    } catch (err) {
+      if (err?.code === 'auth/user-not-found') {
+        showMessage('error', 'No account found with this email.')
+      } else if (err?.code === 'auth/invalid-email') {
+        showMessage('error', 'Invalid email address.')
+      } else {
+        showMessage('error', err?.message || 'Something went wrong. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const EMAIL_AUTH_TIMEOUT_MS = 15000
+  const CREATE_ACCOUNT_TIMEOUT_MS = 25000 // 25s; native uses CapacitorHttp to 1st-gen URL (no WebView hang)
+
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
     if (!email.trim()) {
@@ -153,29 +180,79 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
     }
     setLoading(true)
     setMessage({ type: '', text: '' })
+    const timeoutMs = isSignIn ? EMAIL_AUTH_TIMEOUT_MS : CREATE_ACCOUNT_TIMEOUT_MS
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('auth_timeout')), timeoutMs)
+    )
     try {
       if (isSignIn) {
-        await signInWithEmailAndPassword(auth, email.trim(), password.trim())
+        const authPromise = signInWithEmailAndPassword(auth, email.trim(), password.trim())
+        await Promise.race([authPromise, timeoutPromise])
         if (onBack) onBack()
+        navigate('/home', { replace: true })
         if (Capacitor.isNativePlatform()) {
           window.location.hash = '#/home'
-          setTimeout(() => window.location.reload(), 100)
+          setTimeout(() => window.location.reload(), 150)
         }
         return
       } else {
-        await createUserWithEmailAndPassword(auth, email.trim(), password.trim())
-        showMessage('success', 'Account created! Signing you in...')
+        // Create account: native = CapacitorHttp to 1st-gen URL (bypasses WebView/CORS); web = SDK
+        const payload = { email: email.trim(), password: password.trim() }
+        let customToken = null
+        const callableUrl = getCreateAccountCallableUrl()
+        const isNative = Capacitor.isNativePlatform()
+
+        if (isNative && callableUrl) {
+          const nativePromise = CapacitorHttp.request({
+            url: callableUrl,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            data: { data: payload },
+          }).then((res) => {
+            const body = res.data || {}
+            if (res.status >= 400) {
+              const err = new Error(body?.error?.message || `Request failed (${res.status})`)
+              err.code = body?.error?.status ? `functions/${String(body.error.status).toLowerCase()}` : undefined
+              throw err
+            }
+            return body.result?.customToken ?? body.data?.customToken ?? null
+          })
+          customToken = await Promise.race([nativePromise, timeoutPromise])
+        } else {
+          const result = await Promise.race([createAccountWithTokenCallable(payload), timeoutPromise])
+          customToken = result?.data?.customToken ?? null
+        }
+        if (!customToken) throw new Error('No token returned')
+        await signInWithCustomToken(auth, customToken)
         if (onBack) onBack()
+        navigate('/home', { replace: true })
         if (Capacitor.isNativePlatform()) {
           window.location.hash = '#/home'
-          setTimeout(() => window.location.reload(), 100)
+          setTimeout(() => window.location.reload(), 150)
         }
         return
       }
     } catch (err) {
       const msg = err.message || ''
+      const code = err.code || ''
       console.error('Auth error:', err)
-      if (err.code === 'auth/too-many-requests') {
+      // Cloud Function callable errors (create account)
+      if (code === 'functions/already-exists' || code === 'already-exists') {
+        showMessage('error', 'An account with this email already exists. Please sign in instead.')
+      } else if (code === 'functions/invalid-argument' || code === 'invalid-argument') {
+        showMessage('error', msg || 'Invalid email or password. Password must be at least 6 characters.')
+      } else if (code === 'functions/internal' || code === 'internal') {
+        showMessage('error', msg || 'Could not create account. Please try again.')
+      } else if (code === 'functions/not-found' || code === 'not-found' || msg.includes('404')) {
+        showMessage('error', 'Create-account service is not available. Make sure the Cloud Function is deployed (firebase deploy --only functions) and the app was built with the correct .env.')
+      } else if (err?.message === 'auth_timeout') {
+        const timeoutHint = !isSignIn
+          ? ' Check your connection. If it keeps failing, use the web version (https) to create an account.'
+          : ' Firebase may not allow this connection from the app. Use the web version (https) to sign in, or see docs/TROUBLESHOOTING_TESTFLIGHT.md.'
+        showMessage('error', `Request is taking too long.${timeoutHint}`)
+      } else if (err?.message === 'No token returned') {
+        showMessage('error', 'Something went wrong creating your account. Please try again.')
+      } else if (err.code === 'auth/too-many-requests') {
         showMessage('error', 'Too many attempts. Please wait a moment and try again.')
       } else if (err.code === 'auth/weak-password') {
         showMessage('error', 'Password is too weak. Please use a stronger password (at least 6 characters).')
@@ -187,6 +264,10 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
         showMessage('error', 'An account with this email already exists. Please sign in instead.')
       } else if (err.code === 'auth/wrong-password') {
         showMessage('error', 'Incorrect password. Please try again.')
+      } else if (Capacitor.isNativePlatform() && (err.code === 'auth/network-request-failed' || err.code === 'auth/internal-error' || /configuration|CORS|domain/i.test(msg))) {
+        showMessage('error', 'Firebase doesn’t allow sign-in from this app’s origin. Use the web version (https) to sign in, or host this app at an https URL and add that domain in Firebase → Authentication → Authorized domains. See docs/TROUBLESHOOTING_TESTFLIGHT.md.')
+      } else if (/load failed|failed to load|network error|fetch failed/i.test(msg) || err.name === 'TypeError') {
+        showMessage('error', 'Network request failed. Check your connection and try again. If it keeps failing in the app, create your account on the web version, then sign in here.')
       } else {
         showMessage('error', msg || `Failed: ${err.code || 'Unknown error'}. Please try again.`)
       }
@@ -345,7 +426,45 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
         </div>
       )}
 
-      {step === 'form' && onBack ? (
+      {step === 'forgot' && onBack ? (
+        <div className="signin-sheet-form" role="dialog" aria-label="Reset password">
+          <div className="signin-card" ref={formCardRef}>
+            <h2 className="signin-form-title">Reset password</h2>
+            <p className="signin-forgot-hint">Enter your email and we’ll send you a link to reset your password.</p>
+            {message.text && (
+              <div className={`signin-message signin-message--${message.type}`}>{message.text}</div>
+            )}
+            <form className="signin-form" onSubmit={handleForgotSubmit}>
+              <label className="signin-label" htmlFor="signin-forgot-email">Email</label>
+              <input
+                id="signin-forgot-email"
+                type="email"
+                className="signin-input"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                disabled={loading}
+                autoFocus
+              />
+              <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
+                {loading ? 'Sending…' : 'Send reset link'}
+              </button>
+              <button
+                type="button"
+                className="signin-link"
+                onClick={() => { setStep('form'); setMessage({ type: '', text: '' }) }}
+                disabled={loading}
+              >
+                ← Back to sign in
+              </button>
+            </form>
+            <div className="signin-footer">
+              <button type="button" className="signin-back" onClick={onBack}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      ) : step === 'form' && onBack ? (
         /* Bottom sheet: form fades in and replaces the buttons */
         <div className="signin-sheet-form" role="dialog" aria-label={isSignIn ? 'Sign in' : 'Create account'}>
           <div className="signin-card" ref={formCardRef}>
@@ -400,6 +519,16 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
                   )}
                 </button>
               </div>
+              {isSignIn && (
+                <button
+                  type="button"
+                  className="signin-forgot-link"
+                  onClick={() => { setStep('forgot'); setMessage({ type: '', text: '' }) }}
+                  disabled={loading}
+                >
+                  Forgot password?
+                </button>
+              )}
               <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
                 {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
               </button>
@@ -460,6 +589,11 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
                     )}
                   </button>
                 </div>
+                {isSignIn && (
+                  <button type="button" className="signin-forgot-link" onClick={() => { setStep('forgot'); setMessage({ type: '', text: '' }) }} disabled={loading}>
+                    Forgot password?
+                  </button>
+                )}
                 <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
                   {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
                 </button>
@@ -468,6 +602,39 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
               <div className="signin-legal">
                 By tapping Sign in or Create account, you agree to our <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
               </div>
+              <div className="signin-footer">
+                <Link to="/" className="signin-back">Cancel</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : step === 'forgot' && !onBack ? (
+        <div className="signin-form-overlay" role="dialog" aria-label="Reset password">
+          <div className="signin-form-overlay-inner">
+            <div className="signin-card" ref={formCardRef}>
+              <h2 className="signin-form-title">Reset password</h2>
+              <p className="signin-forgot-hint">Enter your email and we’ll send you a link to reset your password.</p>
+              {message.text && (
+                <div className={`signin-message signin-message--${message.type}`}>{message.text}</div>
+              )}
+              <form className="signin-form" onSubmit={handleForgotSubmit}>
+                <label className="signin-label" htmlFor="signin-forgot-email-page">Email</label>
+                <input
+                  id="signin-forgot-email-page"
+                  type="email"
+                  className="signin-input"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  disabled={loading}
+                  autoFocus
+                />
+                <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
+                  {loading ? 'Sending…' : 'Send reset link'}
+                </button>
+                <button type="button" className="signin-link" onClick={() => { setStep('form'); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back to sign in</button>
+              </form>
               <div className="signin-footer">
                 <Link to="/" className="signin-back">Cancel</Link>
               </div>

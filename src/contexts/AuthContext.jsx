@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db } from '../lib/firebase'
+import { auth, db, getAuthRedirectResult } from '../lib/firebase'
 import { updatePresence } from '../lib/chatHelpers'
 
 const AuthContext = createContext(null)
@@ -45,12 +45,22 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true
 
-    // Timeout: if auth doesn't resolve within 10s (e.g. no network on device), show app anyway
+    // On native, complete Google/Apple redirect sign-in when user returns to the app (don’t let this block or throw)
+    Promise.resolve()
+      .then(() => getAuthRedirectResult())
+      .then(() => { /* onAuthStateChanged will handle the user */ })
+      .catch((err) => {
+        if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+          console.error('Redirect result error:', err)
+        }
+      })
+
+    // Timeout: if auth doesn't resolve within 4s (e.g. slow network on TestFlight), show splash anyway
     const loadingTimeout = setTimeout(() => {
       if (mountedRef.current) {
         setLoading(false)
       }
-    }, 10000)
+    }, 4000)
 
     // Firebase auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {

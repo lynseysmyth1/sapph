@@ -8,6 +8,49 @@ This guide will help you build and deploy your Sapph app to TestFlight for iOS t
 2. **Apple Developer Account** ($99/year) - Required for TestFlight
 3. **Network connection** - For downloading dependencies
 
+## App size & load time
+
+- **Splash image:** `public/images/splash.jpg` is used on the first screen. Keep it under ~500 KB (e.g. max width 1200–1600 px, JPEG quality 80) so TestFlight loads faster. Resize/compress in an image editor or with `sips` on macOS.
+- **Code splitting:** Routes (Home, Onboarding, Chat, etc.) load on demand so the initial bundle is smaller and the app becomes interactive sooner.
+
+## Getting the latest build onto your phone (important)
+
+If you changed code but still see the old behavior (e.g. still see Google/Apple, or old freeze):
+
+1. **Rebuild and sync:**  
+   `npm run build && npx cap sync ios`
+2. **In Xcode:** **Product → Clean Build Folder** (⌘⇧K), then **Product → Run** (⌘R).
+3. **On the phone:** Delete the Sapph app (long-press → Remove App), then run again from Xcode so it installs fresh. This avoids the WebView using cached old JavaScript.
+
+---
+
+## Deploying your latest code to Xcode (after updates)
+
+Whenever you’ve made changes (e.g. sign-in flow, forgot password, UI tweaks, new app icon), do this so the iOS app uses the new build:
+
+1. **Build the web app** (in your project folder, in Terminal or Cursor):
+   ```bash
+   npm run build
+   ```
+2. **Sync the build into the iOS project**:
+   ```bash
+   npx cap sync ios
+   ```
+   This copies the latest `dist/` into the iOS app and updates native config if needed.
+3. **Open the app in Xcode**:
+   ```bash
+   npx cap open ios
+   ```
+   (Or in Xcode: **File → Open** and choose `ios/App/App.xcworkspace` — use the **.xcworkspace** file, not the .xcodeproj.)
+4. In Xcode you can then:
+   - **Run on simulator:** Choose an iPhone simulator from the device menu, then **Product → Run** (or **⌘R**).
+   - **Run on your iPhone:** Connect the phone, select it in the device menu, then Run. Trust the developer certificate on the device if asked.
+   - **Upload to TestFlight:** See **Step 8** and **Step 9** below (select **Any iOS Device**, then **Product → Archive**, then **Distribute App**).
+
+After **cap sync**, Xcode will use the new web bundle on the next build; you don’t need to change anything inside Xcode for JS/CSS/asset updates.
+
+---
+
 ## Step 1: Build the Web App
 
 The web app has already been built. If you need to rebuild:
@@ -169,8 +212,10 @@ If you see **3 issues** for the App target:
 When running on a physical device you may see:
 - **"Could not create a sandbox extension for .../App.app"** – Common on device/simulator; often benign. If the app runs normally, no action needed.
 - **"WebContent[...] Unable to hide query parameters from script (missing data)"** – WebKit/Capacitor message when loading the in-app web view. Does not affect app behavior.
-- **"Unable to simultaneously satisfy constraints"** (ButtonWrapper / _UIButtonBarButton / width == 0) – Comes from iOS keyboard/input bar, not your app. UIKit recovers by breaking a constraint. Safe to ignore.
-- **"UIInputViewSetPlacementInvisible" / "RTIInputSystemClient ... session"** – Keyboard/input system messages when the keyboard appears or dismisses. Do not affect app behavior.
+- **"Failed to send CA Event for app launch measurements"** – Apple internal analytics. Safe to ignore.
+- **"Unable to simultaneously satisfy constraints"** (ButtonWrapper / _UIButtonBarButton / width == 0) – Comes from iOS keyboard/input bar or WebView chrome, not your app code. UIKit recovers by breaking a constraint. Safe to ignore.
+- **"UIInputViewSetPlacementInvisible" / "RTIInputSystemClient ... session" / "Can only set suggestions for an active session"** – Keyboard/input system messages when the keyboard appears or dismisses in the WebView. Do not affect app behavior.
+- **"Result accumulator timeout"** – Internal system message. Safe to ignore.
 
 ## Quick Commands Reference
 

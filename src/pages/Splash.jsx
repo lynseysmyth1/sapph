@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { signInWithGoogle, signInWithApple, isFirebaseConfigured } from '../lib/firebase'
 import SignIn from './SignIn'
 import './Splash.css'
+
+const SOCIAL_REDIRECT_TIMEOUT_MS = 6000
 
 export default function Splash() {
   const { user, loading } = useAuth()
@@ -14,7 +17,9 @@ export default function Splash() {
   const [authError, setAuthError] = useState('')
   const [socialLoading, setSocialLoading] = useState(null) // 'apple' | 'google' | null
 
-  const showSocial = isFirebaseConfigured()
+  const isNative = Capacitor.isNativePlatform()
+  // On native, hide Google/Apple to avoid redirect freeze/timeout; email sign-in only
+  const showSocial = isFirebaseConfigured() && !isNative
 
   useEffect(() => {
     if (!loading && user) {
@@ -22,21 +27,25 @@ export default function Splash() {
     }
   }, [user, loading, navigate])
 
+  // Defer state update so tap handler returns immediately (avoids blocking main thread on iOS)
   const goToMethod = (createOrSignIn) => {
-    setIntent(createOrSignIn)
-    setStep('method')
     setAuthError('')
+    requestAnimationFrame(() => {
+      setIntent(createOrSignIn)
+      setStep('method')
+    })
   }
 
   const goBack = () => {
+    setAuthError('')
     setStep('choice')
     setIntent(null)
-    setAuthError('')
   }
 
   const handleEmail = () => {
     setAuthError('')
-    setShowEmailForm(true)
+    // Defer opening sheet so tap handler returns and UI can update (reduces freeze on native)
+    setTimeout(() => setShowEmailForm(true), 0)
   }
 
   const handleGoogle = async () => {
@@ -47,10 +56,24 @@ export default function Splash() {
     }
     setSocialLoading('google')
     try {
-      await signInWithGoogle()
-      navigate('/home', { replace: true })
+      if (isNative) {
+        const redirectPromise = signInWithGoogle()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('redirect_timeout')), SOCIAL_REDIRECT_TIMEOUT_MS)
+        )
+        await Promise.race([redirectPromise, timeoutPromise])
+        navigate('/home', { replace: true })
+      } else {
+        await signInWithGoogle()
+        navigate('/home', { replace: true })
+      }
     } catch (err) {
-      setAuthError(err?.message || 'Google sign-in failed. Please try again.')
+      const msg = err?.message || err?.code || ''
+      if (msg.includes('redirect_timeout')) {
+        setAuthError('Sign-in is taking too long. Please use "Sign in with email" below.')
+      } else {
+        setAuthError(err?.message || 'Google sign-in failed. Please try again.')
+      }
     } finally {
       setSocialLoading(null)
     }
@@ -64,10 +87,24 @@ export default function Splash() {
     }
     setSocialLoading('apple')
     try {
-      await signInWithApple()
-      navigate('/home', { replace: true })
+      if (isNative) {
+        const redirectPromise = signInWithApple()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('redirect_timeout')), SOCIAL_REDIRECT_TIMEOUT_MS)
+        )
+        await Promise.race([redirectPromise, timeoutPromise])
+        navigate('/home', { replace: true })
+      } else {
+        await signInWithApple()
+        navigate('/home', { replace: true })
+      }
     } catch (err) {
-      setAuthError(err?.message || 'Apple sign-in failed. Please try again.')
+      const msg = err?.message || err?.code || ''
+      if (msg.includes('redirect_timeout')) {
+        setAuthError('Sign-in is taking too long. Please use "Sign in with email" below.')
+      } else {
+        setAuthError(err?.message || 'Apple sign-in failed. Please try again.')
+      }
     } finally {
       setSocialLoading(null)
     }
@@ -134,6 +171,9 @@ export default function Splash() {
                   {intent === 'create' ? 'Create account with email' : 'Sign in with email'}
                 </span>
               </button>
+              {isNative && (
+                <p className="splash-native-hint">Use email above to sign in or create an account.</p>
+              )}
               {showSocial && (
                 <>
                   <button

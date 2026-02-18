@@ -29,6 +29,10 @@ This guide will help you set up Firebase for authentication, database (Firestore
 
 **Note:** For now, we're only using email/password. Google/Apple sign-in can be added later.
 
+**Forgot password:** No extra switch is needed. The app uses Firebase’s “send password reset email”; the same Email/Password provider handles it. Optional in Firebase Console:
+- **Authentication → Templates** – edit the “Password reset” email (text, sender name, link).
+- **Authentication → Settings → Authorized domains** – ensure your app’s domain (and `localhost` for dev) is listed so the reset link works.
+
 ---
 
 ## Step 3: Create Firestore Database
