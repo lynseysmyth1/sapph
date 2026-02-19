@@ -9,9 +9,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Profiles - users can only read/write their own profile
+    // Profiles - users can read all profiles (for discovery), write only their own
     match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow reading any profile for discovery
+      allow write: if request.auth != null && request.auth.uid == userId; // Only write own profile
     }
     
     // Likes - users can create likes, read likes they're involved in
@@ -53,9 +54,23 @@ service cloud.firestore {
 
 ## How to Apply
 
+### Option 1: Copy from firestore.rules file (Recommended)
+1. Open `firestore.rules` file in the project root
+2. Copy all the contents
+3. Go to **Firebase Console** → **Firestore Database** → **Rules** tab
+4. Paste the rules
+5. Click **Publish**
+
+### Option 2: Copy from this document
 1. Go to **Firebase Console** → **Firestore Database** → **Rules** tab
 2. Replace the existing rules with the rules above
 3. Click **Publish**
+
+### Option 3: Deploy via Firebase CLI (Advanced)
+If you have Firebase CLI set up:
+```bash
+firebase deploy --only firestore:rules
+```
 
 ## Required Indexes
 
@@ -86,3 +101,12 @@ Firestore will prompt you to create indexes when you first run queries. You can 
 - Fields:
   - `timestamp` (Ascending)
 - Query scope: Collection
+
+**Index 4: Profiles by onboarding_completed (REQUIRED for discovery)**
+- Collection: `profiles`
+- Fields:
+  - `onboarding_completed` (Ascending)
+- Query scope: Collection
+- **Status:** ⚠️ **CRITICAL** - Without this index, discovery profiles will fail to load!
+
+**Note:** Firebase will automatically prompt you to create this index when you first run the discovery query. Click the link in the error message to create it instantly.

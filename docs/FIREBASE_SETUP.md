@@ -107,14 +107,18 @@ This guide will help you set up Firebase for authentication, database (Firestore
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
-       // Profiles collection - users can only read/write their own profile
+       // Profiles - users can read all profiles (for discovery), write only their own
        match /profiles/{userId} {
-         allow read, write: if request.auth != null && request.auth.uid == userId;
+         allow read: if request.auth != null; // Allow reading any profile for discovery
+         allow write: if request.auth != null && request.auth.uid == userId; // Only write own profile
        }
      }
    }
    ```
+   **Or** copy from `firestore.rules` file in the project root.
 3. Click **Publish**
+
+**Important:** The rules allow reading all profiles for discovery (dating app pattern). Users can only write their own profile.
 
 ---
 

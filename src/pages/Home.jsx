@@ -84,29 +84,48 @@ export default function Home() {
     // Don't redirect if we just completed onboarding (sessionStorage survives reload / hash change)
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user?.id) return
     if (location.state?.fromOnboardingComplete) return
-    // Only redirect if we have a confirmed profile with onboarding not completed
-    if (user?.id && profile && profile.onboarding_completed === false && profile.id) {
+    // Only redirect if we have a confirmed profile with onboarding explicitly false (not undefined)
+    // If onboarding_completed is undefined, wait for profile fetch to complete
+    if (user?.id && profile?.id && profile.onboarding_completed === false) {
       navigate('/onboarding', { replace: true })
     }
-  }, [user?.id, profile, navigate, location.state?.fromOnboardingComplete])
+  }, [user?.id, profile?.id, profile?.onboarding_completed, navigate, location.state?.fromOnboardingComplete])
 
   // Load discovery profiles
   useEffect(() => {
     const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user?.id
     const completed = profile?.onboarding_completed || location.state?.fromOnboardingComplete || justCompleted
     
-    // If conditions aren't met yet, set loading to false so we don't show "Loading profiles..." forever
-    if (!user?.id || !profile?.id || !completed) {
+    console.log('[Home] Discovery profiles check:', {
+      userId: user?.id,
+      profileId: profile?.id,
+      onboardingCompleted: profile?.onboarding_completed,
+      justCompleted: justCompleted,
+      completed: completed,
+      sessionStorageFlag: typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('onboardingComplete') : 'N/A'
+    });
+    
+    // If user or profile ID missing, wait
+    if (!user?.id || !profile?.id) {
+      console.log('[Home] ⏳ Waiting for user/profile ID');
+      setLoading(false)
+      return
+    }
+    
+    // If onboarding not completed, don't load profiles (will redirect to onboarding)
+    if (!completed) {
+      console.log('[Home] ⏸️ Onboarding not completed, not loading profiles');
       setLoading(false)
       return
     }
 
+    console.log('[Home] ✅ Loading discovery profiles...');
     const loadProfiles = async () => {
       setLoading(true)
       try {
-        // Add timeout to prevent hanging forever
+        // Add timeout to prevent hanging forever (increased to 15s for slow networks)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile load timeout')), 10000)
+          setTimeout(() => reject(new Error('Profile load timeout')), 15000)
         )
         
         const discoveryProfiles = await Promise.race([
@@ -114,13 +133,19 @@ export default function Home() {
           timeoutPromise
         ])
         
+        console.log('[Home] ✅ Loaded', discoveryProfiles.length, 'discovery profiles');
         setProfiles(discoveryProfiles)
         if (discoveryProfiles.length > 0) {
           setCurrentProfile(discoveryProfiles[0])
           setActivePhotoIndex(0)
+        } else {
+          // No profiles found - show empty state
+          console.log('[Home] ℹ️ No discovery profiles found');
+          setCurrentProfile(null)
         }
       } catch (error) {
-        console.error('[Home] Error loading discovery profiles:', error)
+        console.error('[Home] ❌ Error loading discovery profiles:', error.message || error)
+        console.error('[Home] ❌ Full error:', error)
         // Set empty profiles so user sees "No more profiles" instead of stuck loading
         setProfiles([])
         setCurrentProfile(null)
@@ -130,7 +155,7 @@ export default function Home() {
     }
 
     loadProfiles()
-  }, [user, profile, passedUserIds, location.state?.fromOnboardingComplete])
+  }, [user?.id, profile?.id, profile?.onboarding_completed, passedUserIds, location.state?.fromOnboardingComplete])
 
   const handleLike = async (likeType) => {
     if (!currentProfile || !user?.id || liking) return

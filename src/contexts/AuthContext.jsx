@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db, getAuthRedirectResult } from '../lib/firebase'
+import { auth, db } from '../lib/firebase'
 import { updatePresence } from '../lib/chatHelpers'
 
 const AuthContext = createContext(null)
@@ -45,16 +45,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true
 
-    // On native, complete Google/Apple redirect sign-in when user returns to the app (don’t let this block or throw)
-    Promise.resolve()
-      .then(() => getAuthRedirectResult())
-      .then(() => { /* onAuthStateChanged will handle the user */ })
-      .catch((err) => {
-        if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
-          console.error('Redirect result error:', err)
-        }
-      })
-
     // Timeout: if auth doesn't resolve within 2s (e.g. slow network on TestFlight), show splash anyway
     const loadingTimeout = setTimeout(() => {
       if (mountedRef.current) {
@@ -88,25 +78,57 @@ export function AuthProvider({ children }) {
             const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === firebaseUser.uid
             setProfile({
               id: firebaseUser.uid,
-              onboarding_completed: justCompleted
+              onboarding_completed: justCompleted || undefined // Don't set false - leave undefined until we know
             })
           }
           
-          // Then fetch full profile in background (non-blocking)
-          Promise.race([
-            fetchProfile(firebaseUser.uid),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-          ]).then((profileData) => {
-            if (mountedRef.current && profileData) {
-              setProfile(profileData)
-              // Clear sessionStorage flag once we have the real profile
-              if (profileData.onboarding_completed) {
-                sessionStorage.removeItem('onboardingComplete')
+          // Fetch full profile with retry logic (non-blocking)
+          const fetchWithRetry = async (retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+              try {
+                const profileData = await Promise.race([
+                  fetchProfile(firebaseUser.uid),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)) // Increased to 10s
+                ])
+                
+                if (mountedRef.current && profileData) {
+                  setProfile(profileData)
+                  // Clear sessionStorage flag once we have the real profile
+                  if (profileData.onboarding_completed) {
+                    sessionStorage.removeItem('onboardingComplete')
+                  }
+                  return // Success - exit retry loop
+                }
+              } catch (err) {
+                if (i === retries) {
+                  // Final retry failed - log error but don't block UI
+                  console.warn('[AuthContext] Profile fetch failed after retries:', err.message)
+                  // Try to check Firestore directly for onboarding_completed status
+                  try {
+                    const profileRef = doc(db, 'profiles', firebaseUser.uid)
+                    const profileSnap = await getDoc(profileRef)
+                    if (profileSnap.exists() && mountedRef.current) {
+                      const data = profileSnap.data()
+                      // Update profile with at least the onboarding_completed status
+                      setProfile(prev => ({
+                        ...prev,
+                        onboarding_completed: data.onboarding_completed || false
+                      }))
+                    }
+                  } catch (directErr) {
+                    console.error('[AuthContext] Direct profile check failed:', directErr)
+                  }
+                } else {
+                  // Wait before retry (exponential backoff)
+                  await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
+                }
               }
             }
-          }).catch((err) => {
-            // Profile fetch timed out or failed - keep minimal profile
-            console.warn('[AuthContext] Profile fetch timeout, using minimal profile')
+          }
+          
+          fetchWithRetry().catch(() => {
+            // All retries failed - keep minimal profile
+            console.warn('[AuthContext] Profile fetch failed completely')
           })
         } else {
           // User is signed out

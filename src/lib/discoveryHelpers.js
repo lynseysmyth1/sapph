@@ -41,10 +41,18 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
     return profiles.sort(() => Math.random() - 0.5)
   } catch (error) {
     console.error('[getDiscoveryProfiles] Error:', error.code || error.message)
-    // If it's a missing index error, log helpful message
-    if (error.code === 'failed-precondition') {
+    
+    // Provide specific error messages for common issues
+    if (error.code === 'permission-denied') {
+      console.error('[getDiscoveryProfiles] Permission denied! Update Firestore security rules to allow reading profiles for discovery.')
+      console.error('[getDiscoveryProfiles] Change: allow read: if request.auth != null; (instead of only own profile)')
+    } else if (error.code === 'failed-precondition') {
       console.error('[getDiscoveryProfiles] Missing Firestore index! Create index for: profiles/onboarding_completed')
+      console.error('[getDiscoveryProfiles] Go to Firebase Console → Firestore → Indexes → Create Index')
+    } else if (error.code === 'unavailable') {
+      console.error('[getDiscoveryProfiles] Firestore is temporarily unavailable. Please try again.')
     }
+    
     return []
   }
 }

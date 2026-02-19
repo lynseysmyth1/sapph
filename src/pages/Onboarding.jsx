@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './Onboarding.css';
 
-// Steps from docs/ONBOARDING_PAGES_READOUT.md — types: intro, completion, text, textarea, radio, checkbox, photos, group
+// Full onboarding steps – types: intro, completion, text, textarea, radio, checkbox, photos, group
 const ONBOARDING_STEPS = [
   { type: 'intro', id: 'intro_details', body: "Let's get started with some details about you" },
   { type: 'text', id: 'name_dob', label: "What's your name?", sublabel: "And date of birth", alsoCollectDob: true, required: true },
@@ -62,6 +62,10 @@ export default function Onboarding() {
   const [error, setError] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
 
+  // Log steps for debugging
+  console.log('[Onboarding] Total steps:', ONBOARDING_STEPS.length);
+  console.log('[Onboarding] Steps:', ONBOARDING_STEPS.map(s => ({ type: s.type, id: s.id })));
+
   const currentStep = ONBOARDING_STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === ONBOARDING_STEPS.length - 1;
 
@@ -82,11 +86,20 @@ export default function Onboarding() {
   }, [user, navigate]);
 
   function getStepLabel() {
-    if (currentStepIndex === 0 || currentStepIndex === 11 || currentStepIndex === 20) return null;
-    if (currentStepIndex <= 10) return { title: 'About you', step: `Step ${currentStepIndex} of 10` };
-    if (currentStepIndex >= 12 && currentStepIndex <= 19) return { title: 'Your profile', step: `Step ${currentStepIndex - 11} of 8` };
-    if (currentStepIndex >= 21 && currentStepIndex <= 22) return { title: 'Final details', step: `Step ${currentStepIndex - 20} of 2` };
-    return null;
+    // Show progress across all non-intro / non-completion steps
+    const contentSteps = ONBOARDING_STEPS.filter(
+      (s) => s.type !== 'intro' && s.type !== 'completion'
+    );
+    const totalSteps = contentSteps.length;
+    if (currentStep.type === 'intro' || currentStep.type === 'completion') return null;
+
+    const idxInContent = contentSteps.findIndex((s) => s.id === currentStep.id);
+    const stepNumber = idxInContent >= 0 ? idxInContent + 1 : currentStepIndex + 1;
+
+    return {
+      title: 'About you',
+      step: `Step ${stepNumber} of ${totalSteps}`,
+    };
   }
   const stepInfo = getStepLabel();
 
@@ -301,65 +314,136 @@ export default function Onboarding() {
       return; 
     }
     
+    // CRITICAL: Verify user.id matches Firebase Auth UID
+    if (!user?.id) {
+      setError('No user ID found. Please sign in again.');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('[Onboarding] Saving profile for user ID:', user.id);
+    console.log('[Onboarding] User object:', { id: user.id, email: user.email });
+    
     const profileRef = doc(db, 'profiles', user.id);
     const photos = formData.photos || [];
     const existingPhotoUrls = photos.filter(url => url.startsWith('http'));
     const photosToUpload = photos.filter(url => url.startsWith('blob:'));
     
-    // Save profile with a short timeout - wait up to 3 seconds, then navigate anyway
     setSaveStatus('Saving your profile...');
     
-    const immediatePayload = buildProfilePayload(existingPhotoUrls);
-    
-    // Try to save with a 3-second timeout
-    const savePromise = setDoc(profileRef, immediatePayload, { merge: true });
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('save_timeout')), 3000)
-    );
-    
+    // TWO-PHASE SAVE: Critical field first (fast), then rest (background)
+    // Phase 1: Save critical field only (onboarding_completed) - small, fast write
     try {
-      // Wait up to 3 seconds for save to complete
-      await Promise.race([savePromise, timeoutPromise]);
+      const criticalPayload = { 
+        onboarding_completed: true,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('[Onboarding] Attempting to save critical payload:', criticalPayload);
+      console.log('[Onboarding] Profile document path: profiles/' + user.id);
+      
+      // Save critical field with 5-second timeout (should be fast)
+      const criticalSavePromise = setDoc(profileRef, criticalPayload, { merge: true });
+      const criticalTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('critical_timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([criticalSavePromise, criticalTimeout]);
+        console.log('[Onboarding] ✅ Critical field saved successfully');
+        
+        // Verify the save worked by reading it back
+        const verifySnap = await getDoc(profileRef);
+        if (verifySnap.exists()) {
+          const savedData = verifySnap.data();
+          console.log('[Onboarding] ✅ Verification: Document exists');
+          console.log('[Onboarding] ✅ Verification: onboarding_completed =', savedData.onboarding_completed);
+          console.log('[Onboarding] ✅ Verification: Document ID =', verifySnap.id);
+          
+          if (savedData.onboarding_completed !== true) {
+            console.error('[Onboarding] ❌ VERIFICATION FAILED: onboarding_completed is not true!', savedData);
+            throw new Error('Save verification failed: onboarding_completed not set correctly');
+          }
+          
+          if (verifySnap.id !== user.id) {
+            console.error('[Onboarding] ❌ UID MISMATCH: Document ID (' + verifySnap.id + ') does not match user ID (' + user.id + ')');
+            throw new Error('UID mismatch: Profile document ID does not match user ID');
+          }
+        } else {
+          console.error('[Onboarding] ❌ VERIFICATION FAILED: Document does not exist after save!');
+          throw new Error('Save verification failed: Document not found');
+        }
+      } catch (criticalErr) {
+        if (criticalErr.message === 'critical_timeout') {
+          console.warn('[Onboarding] ⚠️ Save timeout, waiting for completion...');
+          // Wait for actual save to complete
+          await criticalSavePromise;
+          // Verify after waiting
+          const verifySnap = await getDoc(profileRef);
+          if (!verifySnap.exists() || verifySnap.data().onboarding_completed !== true) {
+            throw new Error('Save failed: Document not saved correctly after timeout');
+          }
+          console.log('[Onboarding] ✅ Save completed after timeout');
+        } else {
+          throw criticalErr;
+        }
+      }
+      
+      // Critical save succeeded - update UI and navigate immediately
       setSaveStatus('Profile saved!');
-    } catch (err) {
-      if (err.message === 'save_timeout') {
-        // Save is taking too long - navigate anyway, save will complete in background
-        setSaveStatus('Saving in background...');
-        // Continue the save in background without blocking
-        savePromise.catch(saveErr => {
-          console.error('[Onboarding] Background save failed:', saveErr.code)
-          // Retry once
+      setLoading(false);
+      setSaveStatus(null);
+      
+      // Update profile in memory immediately
+      updateProfile({ onboarding_completed: true });
+      
+      // Set sessionStorage flag
+      try {
+        sessionStorage.setItem('onboardingComplete', user.id);
+      } catch (_) {}
+      
+      // Navigate immediately (don't wait for full save)
+      navigate('/home', { replace: true });
+      
+      // Phase 2: Save rest of profile in background (non-blocking)
+      const fullPayload = buildProfilePayload(existingPhotoUrls);
+      setDoc(profileRef, fullPayload, { merge: true })
+        .then(() => {
+          console.log('[Onboarding] Full profile saved successfully');
+          // Refresh profile to get latest data
+          refreshProfile().catch(() => {});
+        })
+        .catch((fullErr) => {
+          console.error('[Onboarding] Background save failed:', fullErr.code, fullErr.message);
+          // Retry once after 2 seconds
           setTimeout(() => {
-            setDoc(profileRef, immediatePayload, { merge: true })
-              .catch(retryErr => console.error('[Onboarding] Retry failed:', retryErr.code));
+            setDoc(profileRef, fullPayload, { merge: true })
+              .catch(retryErr => {
+                console.error('[Onboarding] Retry failed:', retryErr.code);
+                // Don't show error to user - critical field is saved, rest can sync later
+              });
           }, 2000);
         });
-      } else {
-        // Real error - log it but don't block navigation
-        console.error('[Onboarding] Save error:', err.code, err.message);
-        // Retry in background
-        setTimeout(() => {
-          setDoc(profileRef, immediatePayload, { merge: true })
-            .catch(retryErr => console.error('[Onboarding] Retry failed:', retryErr.code));
-        }, 2000);
+      
+    } catch (err) {
+      // Critical save failed - show error and don't navigate
+      console.error('[Onboarding] ❌ Critical save failed:', err.code, err.message);
+      console.error('[Onboarding] ❌ Full error:', err);
+      console.error('[Onboarding] ❌ User ID:', user.id);
+      console.error('[Onboarding] ❌ Profile ref path:', 'profiles/' + user.id);
+      
+      let errorMessage = `Failed to save profile: ${err.code || err.message}`;
+      if (err.code === 'permission-denied') {
+        errorMessage += '. Check Firestore security rules allow writes for authenticated users.';
+      } else if (err.message?.includes('UID mismatch')) {
+        errorMessage += '. Profile document ID does not match user ID.';
       }
+      
+      setError(errorMessage + ' Please check your connection and try again.');
+      setLoading(false);
+      setSaveStatus(null);
+      return;
     }
-    
-    setLoading(false);
-    setSaveStatus(null);
-    
-    // Update profile in memory so Home sees onboarding_completed: true
-    updateProfile({ onboarding_completed: true });
-    
-    // Persist "just completed" in sessionStorage so it survives hash change / reload on native
-    try {
-      sessionStorage.setItem('onboardingComplete', user.id);
-    } catch (_) {}
-    
-    refreshProfile().catch(() => {});
-    
-    // Navigate to home only (do NOT set window.location.hash - it can trigger reload and reset state)
-    navigate('/home', { replace: true });
     
     // Upload photos in background (don't await - let it run async)
     if (photosToUpload.length > 0 && photoFiles.length > 0) {
@@ -377,7 +461,8 @@ export default function Onboarding() {
   const showBackButton = currentStepIndex > 0 && currentStep.type !== 'completion';
   const isIntroDivider = currentStep.type === 'intro' || currentStep.type === 'completion';
   const isCompletionStep = currentStep.type === 'completion';
-  const hideShowOnProfile = [12, 13, 14].includes(currentStepIndex);
+  // Some fields are always visible on profile; others can be toggled
+  const hideShowOnProfile = ['photos', 'bio', 'conversation_starter'].includes(currentStep.id);
 
   // Show loading state while user/profile is loading
   if (!user) {

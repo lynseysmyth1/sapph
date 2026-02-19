@@ -5,8 +5,11 @@ Follow these steps to set up Firestore for the chat functionality.
 ## Step 1: Update Firestore Security Rules
 
 1. Go to **Firebase Console** → **Firestore Database** → **Rules** tab
-2. Replace your existing rules with the rules from `docs/FIRESTORE_SECURITY_RULES.md`
-3. Click **Publish**
+2. Copy the rules from `firestore.rules` file (in project root) or `docs/FIRESTORE_SECURITY_RULES.md`
+3. Paste into the Rules editor
+4. Click **Publish**
+
+**Important:** The rules allow reading all profiles for discovery. Users can only write their own profile.
 
 ## Step 2: Create Required Indexes
 
