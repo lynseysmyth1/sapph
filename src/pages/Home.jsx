@@ -37,7 +37,7 @@ export default function Home() {
   const [resetting, setResetting] = useState(false)
   const [currentProfile, setCurrentProfile] = useState(null)
   const [profiles, setProfiles] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Start false, will be set true when actually loading profiles
   const [liking, setLiking] = useState(false)
   const [showMatch, setShowMatch] = useState(false)
   const [matchedUserId, setMatchedUserId] = useState(null)
@@ -81,33 +81,56 @@ export default function Home() {
 
   // New users: send to onboarding so they complete profile before discovery
   useEffect(() => {
-    if (user?.id && profile && profile.onboarding_completed === false) {
+    // Don't redirect if we just completed onboarding (sessionStorage survives reload / hash change)
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user?.id) return
+    if (location.state?.fromOnboardingComplete) return
+    // Only redirect if we have a confirmed profile with onboarding not completed
+    if (user?.id && profile && profile.onboarding_completed === false && profile.id) {
       navigate('/onboarding', { replace: true })
     }
-  }, [user?.id, profile, navigate])
+  }, [user?.id, profile, navigate, location.state?.fromOnboardingComplete])
 
   // Load discovery profiles
   useEffect(() => {
-    if (!user?.id || !profile?.onboarding_completed) return
+    const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user?.id
+    const completed = profile?.onboarding_completed || location.state?.fromOnboardingComplete || justCompleted
+    
+    // If conditions aren't met yet, set loading to false so we don't show "Loading profiles..." forever
+    if (!user?.id || !profile?.id || !completed) {
+      setLoading(false)
+      return
+    }
 
     const loadProfiles = async () => {
       setLoading(true)
       try {
-        const discoveryProfiles = await getDiscoveryProfiles(user.id, passedUserIds, 50)
+        // Add timeout to prevent hanging forever
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile load timeout')), 10000)
+        )
+        
+        const discoveryProfiles = await Promise.race([
+          getDiscoveryProfiles(user.id, passedUserIds, 50),
+          timeoutPromise
+        ])
+        
         setProfiles(discoveryProfiles)
         if (discoveryProfiles.length > 0) {
           setCurrentProfile(discoveryProfiles[0])
           setActivePhotoIndex(0)
         }
       } catch (error) {
-        console.error('Error loading discovery profiles:', error)
+        console.error('[Home] Error loading discovery profiles:', error)
+        // Set empty profiles so user sees "No more profiles" instead of stuck loading
+        setProfiles([])
+        setCurrentProfile(null)
       } finally {
         setLoading(false)
       }
     }
 
     loadProfiles()
-  }, [user, profile, passedUserIds])
+  }, [user, profile, passedUserIds, location.state?.fromOnboardingComplete])
 
   const handleLike = async (likeType) => {
     if (!currentProfile || !user?.id || liking) return

@@ -55,48 +55,76 @@ export function AuthProvider({ children }) {
         }
       })
 
-    // Timeout: if auth doesn't resolve within 4s (e.g. slow network on TestFlight), show splash anyway
+    // Timeout: if auth doesn't resolve within 2s (e.g. slow network on TestFlight), show splash anyway
     const loadingTimeout = setTimeout(() => {
       if (mountedRef.current) {
         setLoading(false)
       }
-    }, 4000)
+    }, 2000)
 
     // Firebase auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!mountedRef.current) return
+      try {
+        if (!mountedRef.current) return
 
-      clearTimeout(loadingTimeout)
+        clearTimeout(loadingTimeout)
 
-      if (firebaseUser) {
-        setUser({
-          id: firebaseUser.uid,
-          email: firebaseUser.email,
-          emailVerified: firebaseUser.emailVerified
-        })
-        setLoading(false)
-        updatePresence(firebaseUser.uid, true).catch(err => {
-          console.error('Error updating presence:', err)
-        })
-        Promise.race([
-          fetchProfile(firebaseUser.uid),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-        ]).then((profileData) => {
-          if (mountedRef.current && profileData) setProfile(profileData)
-        }).catch(() => {
-          if (mountedRef.current) setProfile({ id: firebaseUser.uid, onboarding_completed: false })
-        })
-      } else {
-        // User is signed out
-        // Update offline status before clearing user
-        if (user?.id) {
-          updatePresence(user.id, false).catch(err => {
-            console.error('Error updating presence:', err)
+        if (firebaseUser) {
+          setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            emailVerified: firebaseUser.emailVerified
           })
+          setLoading(false)
+          
+          // Update presence in background (don't await)
+          updatePresence(firebaseUser.uid, true).catch(err => {
+            console.error('[AuthContext] Error updating presence:', err)
+          })
+          
+          // Fetch profile in background - don't block UI
+          // Set a minimal profile immediately; use sessionStorage if user just completed onboarding (survives reload)
+          if (mountedRef.current) {
+            const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === firebaseUser.uid
+            setProfile({
+              id: firebaseUser.uid,
+              onboarding_completed: justCompleted
+            })
+          }
+          
+          // Then fetch full profile in background (non-blocking)
+          Promise.race([
+            fetchProfile(firebaseUser.uid),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+          ]).then((profileData) => {
+            if (mountedRef.current && profileData) {
+              setProfile(profileData)
+              // Clear sessionStorage flag once we have the real profile
+              if (profileData.onboarding_completed) {
+                sessionStorage.removeItem('onboardingComplete')
+              }
+            }
+          }).catch((err) => {
+            // Profile fetch timed out or failed - keep minimal profile
+            console.warn('[AuthContext] Profile fetch timeout, using minimal profile')
+          })
+        } else {
+          // User is signed out
+          if (user?.id) {
+            updatePresence(user.id, false).catch(err => {
+              console.error('[AuthContext] Error updating presence:', err)
+            })
+          }
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
         }
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
+      } catch (err) {
+        // Catch any errors to prevent white screen
+        console.error('[AuthContext] Error in auth state listener:', err)
+        if (mountedRef.current) {
+          setLoading(false)
+        }
       }
     })
 
@@ -114,6 +142,12 @@ export function AuthProvider({ children }) {
     refreshProfile: async () => {
       if (user) {
         await fetchProfile(user.id)
+      }
+    },
+    /** Update profile in memory (e.g. after onboarding save so Home doesn't redirect back) */
+    updateProfile: (updates) => {
+      if (mountedRef.current && profile) {
+        setProfile((prev) => (prev ? { ...prev, ...updates } : prev))
       }
     },
     signOut: async () => {

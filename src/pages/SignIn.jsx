@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { signInWithEmailAndPassword, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth'
-import { Capacitor, CapacitorHttp } from '@capacitor/core'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
-import { auth, signInWithGoogle, signInWithApple, isFirebaseConfigured, createAccountWithTokenCallable, getCreateAccountCallableUrl } from '../lib/firebase'
+import { auth, signInWithGoogle, signInWithApple, isFirebaseConfigured } from '../lib/firebase'
 import './SignIn.css'
 
 const APPLE_ICON = (
@@ -166,7 +166,6 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
   }
 
   const EMAIL_AUTH_TIMEOUT_MS = 15000
-  const CREATE_ACCOUNT_TIMEOUT_MS = 25000 // 25s; native uses CapacitorHttp to 1st-gen URL (no WebView hang)
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
@@ -180,78 +179,42 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
     }
     setLoading(true)
     setMessage({ type: '', text: '' })
-    const timeoutMs = isSignIn ? EMAIL_AUTH_TIMEOUT_MS : CREATE_ACCOUNT_TIMEOUT_MS
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('auth_timeout')), timeoutMs)
+      setTimeout(() => reject(new Error('auth_timeout')), EMAIL_AUTH_TIMEOUT_MS)
     )
     try {
       if (isSignIn) {
         const authPromise = signInWithEmailAndPassword(auth, email.trim(), password.trim())
         await Promise.race([authPromise, timeoutPromise])
         if (onBack) onBack()
+        // Navigate immediately - no page reload
         navigate('/home', { replace: true })
         if (Capacitor.isNativePlatform()) {
           window.location.hash = '#/home'
-          setTimeout(() => window.location.reload(), 150)
+          // Don't reload - let React Router handle navigation
         }
         return
       } else {
-        // Create account: native = CapacitorHttp to 1st-gen URL (bypasses WebView/CORS); web = SDK
-        const payload = { email: email.trim(), password: password.trim() }
-        let customToken = null
-        const callableUrl = getCreateAccountCallableUrl()
-        const isNative = Capacitor.isNativePlatform()
-
-        if (isNative && callableUrl) {
-          const nativePromise = CapacitorHttp.request({
-            url: callableUrl,
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            data: { data: payload },
-          }).then((res) => {
-            const body = res.data || {}
-            if (res.status >= 400) {
-              const err = new Error(body?.error?.message || `Request failed (${res.status})`)
-              err.code = body?.error?.status ? `functions/${String(body.error.status).toLowerCase()}` : undefined
-              throw err
-            }
-            return body.result?.customToken ?? body.data?.customToken ?? null
-          })
-          customToken = await Promise.race([nativePromise, timeoutPromise])
-        } else {
-          const result = await Promise.race([createAccountWithTokenCallable(payload), timeoutPromise])
-          customToken = result?.data?.customToken ?? null
-        }
-        if (!customToken) throw new Error('No token returned')
-        await signInWithCustomToken(auth, customToken)
+        // Create account: use Firebase Auth directly (app loads from https, so origin is allowed)
+        const authPromise = createUserWithEmailAndPassword(auth, email.trim(), password.trim())
+        await Promise.race([authPromise, timeoutPromise])
         if (onBack) onBack()
+        // Navigate to home - React Router will handle routing
+        // Don't set hash on native (can cause reload and reset state)
         navigate('/home', { replace: true })
-        if (Capacitor.isNativePlatform()) {
-          window.location.hash = '#/home'
-          setTimeout(() => window.location.reload(), 150)
-        }
         return
       }
     } catch (err) {
       const msg = err.message || ''
       const code = err.code || ''
       console.error('Auth error:', err)
-      // Cloud Function callable errors (create account)
-      if (code === 'functions/already-exists' || code === 'already-exists') {
+      if (code === 'auth/email-already-in-use') {
         showMessage('error', 'An account with this email already exists. Please sign in instead.')
-      } else if (code === 'functions/invalid-argument' || code === 'invalid-argument') {
-        showMessage('error', msg || 'Invalid email or password. Password must be at least 6 characters.')
-      } else if (code === 'functions/internal' || code === 'internal') {
-        showMessage('error', msg || 'Could not create account. Please try again.')
-      } else if (code === 'functions/not-found' || code === 'not-found' || msg.includes('404')) {
-        showMessage('error', 'Create-account service is not available. Make sure the Cloud Function is deployed (firebase deploy --only functions) and the app was built with the correct .env.')
       } else if (err?.message === 'auth_timeout') {
         const timeoutHint = !isSignIn
           ? ' Check your connection. If it keeps failing, use the web version (https) to create an account.'
           : ' Firebase may not allow this connection from the app. Use the web version (https) to sign in, or see docs/TROUBLESHOOTING_TESTFLIGHT.md.'
         showMessage('error', `Request is taking too long.${timeoutHint}`)
-      } else if (err?.message === 'No token returned') {
-        showMessage('error', 'Something went wrong creating your account. Please try again.')
       } else if (err.code === 'auth/too-many-requests') {
         showMessage('error', 'Too many attempts. Please wait a moment and try again.')
       } else if (err.code === 'auth/weak-password') {

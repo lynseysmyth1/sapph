@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Capacitor } from '@capacitor/core';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './Onboarding.css';
@@ -51,7 +52,7 @@ const PROFILE_FIELDS = [
 ];
 
 export default function Onboarding() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formData, setFormData] = useState({});
@@ -74,7 +75,10 @@ export default function Onboarding() {
   }, [profile]);
 
   useEffect(() => {
-    if (!user) navigate('/signin');
+    // Only redirect if user is explicitly null (not loading)
+    if (user === null) {
+      navigate('/signin', { replace: true });
+    }
   }, [user, navigate]);
 
   function getStepLabel() {
@@ -93,14 +97,35 @@ export default function Onboarding() {
     handleInputChange(key, checked ? [...arr, option] : arr.filter(x => x !== option));
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
     const photos = formData.photos || [];
     const filesList = photoFiles || [];
-    if (files.length + photos.length > 6) { setError('Maximum 6 photos allowed'); return; }
+    if (files.length + photos.length > 6) { 
+      setError('Maximum 6 photos allowed'); 
+      return; 
+    }
+    
+    // Show preview immediately with original files, compress in background
     const urls = files.map(f => URL.createObjectURL(f));
     handleInputChange('photos', [...photos, ...urls]);
-    setPhotoFiles([...filesList, ...files]);
+    
+    // Compress photos in background (non-blocking) - replaces files in photoFiles array
+    Promise.all(files.map(file => compressImage(file)))
+      .then(compressedFiles => {
+        // Replace original files with compressed versions
+        const newFilesList = [...filesList];
+        files.forEach((_, idx) => {
+          const insertIndex = filesList.length + idx;
+          newFilesList[insertIndex] = compressedFiles[idx];
+        });
+        setPhotoFiles(newFilesList);
+      })
+      .catch(err => {
+        console.error('[Onboarding] Photo compression error:', err);
+        // Keep original files if compression fails
+        setPhotoFiles([...filesList, ...files]);
+      });
   };
 
   const removePhoto = (index) => {
@@ -187,6 +212,84 @@ export default function Onboarding() {
     return { ...data, photos: finalPhotoUrls, visibility_settings: visibilityData, onboarding_completed: true, updated_at: new Date().toISOString() };
   }
 
+  // Compress/resize image before upload (reduces file size significantly)
+  function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions
+          if (width > height) {
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            resolve(blob || file); // Fallback to original if compression fails
+          }, 'image/jpeg', quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Background photo upload function (runs async after navigation)
+  // Uploads photos in parallel for faster completion
+  // Note: Photos are already compressed when selected
+  async function uploadPhotosInBackground(profileRef, photosToUpload, photoFiles, userId) {
+    const uploadPromises = [];
+    let fileIdx = 0;
+    
+    for (const url of photosToUpload) {
+      if (url.startsWith('blob:') && photoFiles[fileIdx]) {
+        const file = photoFiles[fileIdx]; // Already compressed
+        const idx = fileIdx; // Capture index for parallel uploads
+        
+        // Upload each photo in parallel
+        // Note: Photos are already compressed when selected, so we upload directly
+        const uploadPromise = (async () => {
+          try {
+            const fileName = `${Date.now()}-${idx}.jpg`;
+            const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
+            
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            return { index: idx, url: downloadURL };
+          } catch (uploadErr) {
+            console.error('[Onboarding] Photo upload error:', uploadErr);
+            return null;
+          }
+        })();
+        
+        uploadPromises.push(uploadPromise);
+        fileIdx++;
+      }
+    }
+    
+    // Wait for all uploads to complete in parallel
+    const results = await Promise.all(uploadPromises);
+    // Sort by index to maintain order
+    return results.filter(r => r !== null).sort((a, b) => a.index - b.index).map(r => r.url);
+  }
+
   const handleSubmit = async () => {
     if (loading) return;
     setLoading(true);
@@ -198,85 +301,76 @@ export default function Onboarding() {
       return; 
     }
     
+    const profileRef = doc(db, 'profiles', user.id);
+    const photos = formData.photos || [];
+    const existingPhotoUrls = photos.filter(url => url.startsWith('http'));
+    const photosToUpload = photos.filter(url => url.startsWith('blob:'));
+    
+    // Save profile with a short timeout - wait up to 3 seconds, then navigate anyway
+    setSaveStatus('Saving your profile...');
+    
+    const immediatePayload = buildProfilePayload(existingPhotoUrls);
+    
+    // Try to save with a 3-second timeout
+    const savePromise = setDoc(profileRef, immediatePayload, { merge: true });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('save_timeout')), 3000)
+    );
+    
     try {
-      // Phase 1: Mark onboarding complete immediately
-      setSaveStatus('Marking onboarding complete…');
-      const profileRef = doc(db, 'profiles', user.id);
-      await setDoc(profileRef, { 
-        onboarding_completed: true, 
-        updated_at: new Date().toISOString() 
-      }, { merge: true });
-      console.log('Phase 1: Onboarding marked complete');
-
-      // Phase 2: Upload photos
-      const photos = formData.photos || [];
-      const hasNewPhotos = photos.some(url => url.startsWith('blob:'));
-      if (hasNewPhotos) {
-        setSaveStatus('Uploading photos…');
-      }
-      const finalPhotoUrls = [];
-      let fileIdx = 0;
-      
-      for (const url of photos) {
-        if (url.startsWith('http')) {
-          // Already uploaded photo
-          finalPhotoUrls.push(url);
-        } else if (url.startsWith('blob:') && photoFiles[fileIdx]) {
-          const file = photoFiles[fileIdx];
-          const fileName = `${Date.now()}-${fileIdx}.${file.name.split('.').pop()}`;
-          const storageRef = ref(storage, `profile-photos/${user.id}/${fileName}`);
-          
-          try {
-            // Upload with timeout
-            const uploadPromise = uploadBytes(storageRef, file);
-            const timeoutPromise = new Promise((_, rej) => 
-              setTimeout(() => rej(new Error('Photo upload timed out')), UPLOAD_TIMEOUT_MS)
-            );
-            
-            await Promise.race([uploadPromise, timeoutPromise]);
-            
-            // Get download URL
-            const downloadURL = await getDownloadURL(storageRef);
-            finalPhotoUrls.push(downloadURL);
-            fileIdx++;
-          } catch (uploadErr) {
-            if (uploadErr.message === 'Photo upload timed out') {
-              console.warn('Photo upload timed out, continuing without this photo');
-              break;
-            }
-            console.error('Photo upload error:', uploadErr);
-            // Continue with other photos
-            fileIdx++;
-          }
-        }
-      }
-      
-      // Phase 3: Save full profile
-      setSaveStatus('Saving your profile…');
-      const payload = buildProfilePayload(finalPhotoUrls);
-      await setDoc(profileRef, payload, { merge: true });
-      
-      setSaveStatus('Onboarding complete! Redirecting...');
-      await refreshProfile();
-      await new Promise(resolve => setTimeout(resolve, 100));
-      navigate('/home');
+      // Wait up to 3 seconds for save to complete
+      await Promise.race([savePromise, timeoutPromise]);
+      setSaveStatus('Profile saved!');
     } catch (err) {
-      console.error('Error saving profile:', err);
-      const msg = err?.message ?? '';
-      let displayMsg = msg || 'Failed to save profile. Try again.';
-      
-      if (err.code === 'permission-denied') {
-        displayMsg = 'Permission denied. Please sign out and sign in again.';
-      } else if (err.code === 'unavailable') {
-        displayMsg = 'Firebase is temporarily unavailable. Please try again in a moment.';
-      } else if (/Photo upload timed out/i.test(msg)) {
-        displayMsg = 'Photo upload timed out. Your profile was saved but some photos may be missing.';
+      if (err.message === 'save_timeout') {
+        // Save is taking too long - navigate anyway, save will complete in background
+        setSaveStatus('Saving in background...');
+        // Continue the save in background without blocking
+        savePromise.catch(saveErr => {
+          console.error('[Onboarding] Background save failed:', saveErr.code)
+          // Retry once
+          setTimeout(() => {
+            setDoc(profileRef, immediatePayload, { merge: true })
+              .catch(retryErr => console.error('[Onboarding] Retry failed:', retryErr.code));
+          }, 2000);
+        });
+      } else {
+        // Real error - log it but don't block navigation
+        console.error('[Onboarding] Save error:', err.code, err.message);
+        // Retry in background
+        setTimeout(() => {
+          setDoc(profileRef, immediatePayload, { merge: true })
+            .catch(retryErr => console.error('[Onboarding] Retry failed:', retryErr.code));
+        }, 2000);
       }
-      
-      setError(displayMsg);
-    } finally {
-      setSaveStatus(null);
-      setLoading(false);
+    }
+    
+    setLoading(false);
+    setSaveStatus(null);
+    
+    // Update profile in memory so Home sees onboarding_completed: true
+    updateProfile({ onboarding_completed: true });
+    
+    // Persist "just completed" in sessionStorage so it survives hash change / reload on native
+    try {
+      sessionStorage.setItem('onboardingComplete', user.id);
+    } catch (_) {}
+    
+    refreshProfile().catch(() => {});
+    
+    // Navigate to home only (do NOT set window.location.hash - it can trigger reload and reset state)
+    navigate('/home', { replace: true });
+    
+    // Upload photos in background (don't await - let it run async)
+    if (photosToUpload.length > 0 && photoFiles.length > 0) {
+      uploadPhotosInBackground(profileRef, photosToUpload, photoFiles, user.id)
+        .then((uploadedUrls) => {
+          // Update profile with final photo URLs
+          const finalUrls = [...existingPhotoUrls, ...uploadedUrls];
+          setDoc(profileRef, { photos: finalUrls, updated_at: new Date().toISOString() }, { merge: true })
+            .catch(err => console.error('[Onboarding] Failed to update profile with photos:', err));
+        })
+        .catch(err => console.error('[Onboarding] Background photo upload failed:', err));
     }
   };
 
@@ -284,6 +378,17 @@ export default function Onboarding() {
   const isIntroDivider = currentStep.type === 'intro' || currentStep.type === 'completion';
   const isCompletionStep = currentStep.type === 'completion';
   const hideShowOnProfile = [12, 13, 14].includes(currentStepIndex);
+
+  // Show loading state while user/profile is loading
+  if (!user) {
+    return (
+      <div className="onboarding">
+        <div className="onboarding-loading">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`onboarding ${isIntroDivider ? 'theme-divider' : ''}`}>

@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
-import { getFunctions, httpsCallable } from 'firebase/functions'
 import { Capacitor } from '@capacitor/core'
 
 const firebaseConfig = {
@@ -29,26 +28,25 @@ export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
 
-// Use explicit region so it matches where the function was deployed (default: us-central1)
-const functionsRegion = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1'
-export const functions = getFunctions(app, functionsRegion)
-
-/** Callable: create account on backend, returns { customToken }. Use with signInWithCustomToken(auth, customToken). */
-export const createAccountWithTokenCallable = httpsCallable(functions, 'createAccountWithToken')
-
-/**
- * URL for createAccountWithToken. On native we call this with CapacitorHttp (no WebView/CORS).
- * - If VITE_FIREBASE_CREATE_ACCOUNT_URL is set (e.g. 2nd gen URL from Console), use that.
- * - Else use 1st gen URL (only valid if the function is deployed as 1st gen via firebase-functions/v1).
- */
-export function getCreateAccountCallableUrl() {
-  const envUrl = import.meta.env.VITE_FIREBASE_CREATE_ACCOUNT_URL
-  if (envUrl && typeof envUrl === 'string' && envUrl.startsWith('http')) return envUrl.trim()
-  const region = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1'
-  const projectId = firebaseConfig.projectId
-  if (!projectId) return null
-  return `https://${region}-${projectId}.cloudfunctions.net/createAccountWithToken`
+// Enable offline persistence for Firestore (makes writes feel instant)
+// This caches writes locally and syncs when online
+// Skip on native platforms - IndexedDB persistence can cause issues in Capacitor WebView
+if (typeof window !== 'undefined' && !Capacitor.isNativePlatform()) {
+  // Use setTimeout to make this non-blocking and prevent white screen
+  setTimeout(() => {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('[Firebase] Multiple tabs open, persistence can only be enabled in one tab.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('[Firebase] The current browser does not support persistence.');
+      } else {
+        console.warn('[Firebase] Could not enable offline persistence:', err);
+      }
+    });
+  }, 0);
 }
+
+// Functions no longer needed - using direct Firebase Auth for create-account
 
 export function isFirebaseConfigured() {
   return !!(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId)

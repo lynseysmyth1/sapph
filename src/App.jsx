@@ -34,8 +34,19 @@ function ProtectedRoute({ children }) {
 
 /** When user is already signed in, redirect to app (so WebView reliably leaves splash/signin) */
 function SplashOrRedirect() {
-  const { user, loading } = useAuth()
-  if (!loading && user) return <Navigate to="/home" replace />
+  const { user, loading, profile } = useAuth()
+  // Wait for loading to complete, then check user
+  if (loading) return <div className="app-loading">Loading…</div>
+  if (user) {
+    // If user just completed onboarding (sessionStorage), go to home even before profile refresh
+    const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user.id
+    if (justCompleted) return <Navigate to="/home" replace />
+    // If profile exists and onboarding is incomplete, go to onboarding
+    if (profile && profile.onboarding_completed === false) {
+      return <Navigate to="/onboarding" replace />
+    }
+    return <Navigate to="/home" replace />
+  }
   return <Splash />
 }
 
@@ -46,7 +57,20 @@ function SignInOrRedirect() {
 }
 
 function PageLoader() {
-  return <div className="app-loading">Loading…</div>
+  return (
+    <div className="app-loading" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#fff',
+      color: '#555'
+    }}>
+      <div>
+        <p>Loading…</p>
+      </div>
+    </div>
+  )
 }
 
 export default function App() {
