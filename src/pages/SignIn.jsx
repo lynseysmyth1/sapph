@@ -156,8 +156,8 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
           await resultPromise
           console.log('[SignIn] ✅ Account created successfully')
           if (onBack) onBack()
-          // Navigate to home - React Router will handle routing
-          navigate('/home', { replace: true })
+          // Navigate to / — SplashOrRedirect will route to /onboarding once profile loads
+          navigate('/', { replace: true })
           return
         } catch (authErr) {
           // Re-throw to be caught by outer catch block

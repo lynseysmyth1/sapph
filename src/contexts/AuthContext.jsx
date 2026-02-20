@@ -2,15 +2,21 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { Capacitor } from '@capacitor/core'
 import { auth, db } from '../lib/firebase'
 import { updatePresence } from '../lib/chatHelpers'
+
+// Shorter timeout on native — CapacitorHttp is disabled so Firebase uses WebKit fetch,
+// but WKWebView network is still slower than a desktop browser.
+const PROFILE_FETCH_TIMEOUT_MS = Capacitor.isNativePlatform() ? 5000 : 10000
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [authLoading, setAuthLoading] = useState(true) // Initial auth check (max 2s)
+  const [profileLoading, setProfileLoading] = useState(false) // Profile fetch in progress
   const navigate = useNavigate()
   const mountedRef = useRef(true)
 
@@ -44,11 +50,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     mountedRef.current = true
+    let timeoutCleared = false
+
+    console.log('[AuthContext] Initializing auth state listener')
 
     // Timeout: if auth doesn't resolve within 2s (e.g. slow network on TestFlight), show splash anyway
     const loadingTimeout = setTimeout(() => {
-      if (mountedRef.current) {
-        setLoading(false)
+      if (mountedRef.current && !timeoutCleared) {
+        console.warn('[AuthContext] Auth check timeout (2s) - proceeding without auth state')
+        setAuthLoading(false)
+        // If we timeout and have no user, ensure we show splash (user will be null)
+        // Don't set profileLoading here - let it happen naturally if user exists later
       }
     }, 2000)
 
@@ -58,6 +70,8 @@ export function AuthProvider({ children }) {
         if (!mountedRef.current) return
 
         clearTimeout(loadingTimeout)
+        timeoutCleared = true
+        console.log('[AuthContext] Auth state changed:', firebaseUser ? `User ${firebaseUser.uid}` : 'No user')
 
         if (firebaseUser) {
           setUser({
@@ -65,22 +79,15 @@ export function AuthProvider({ children }) {
             email: firebaseUser.email,
             emailVerified: firebaseUser.emailVerified
           })
-          setLoading(false)
+          setAuthLoading(false)
           
           // Update presence in background (don't await)
           updatePresence(firebaseUser.uid, true).catch(err => {
             console.error('[AuthContext] Error updating presence:', err)
           })
           
-          // Fetch profile in background - don't block UI
-          // Set a minimal profile immediately; use sessionStorage if user just completed onboarding (survives reload)
-          if (mountedRef.current) {
-            const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === firebaseUser.uid
-            setProfile({
-              id: firebaseUser.uid,
-              onboarding_completed: justCompleted || undefined // Don't set false - leave undefined until we know
-            })
-          }
+          // Start profile fetch (non-blocking)
+          setProfileLoading(true)
           
           // Fetch full profile with retry logic (non-blocking)
           const fetchWithRetry = async (retries = 2) => {
@@ -88,36 +95,52 @@ export function AuthProvider({ children }) {
               try {
                 const profileData = await Promise.race([
                   fetchProfile(firebaseUser.uid),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)) // Increased to 10s
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), PROFILE_FETCH_TIMEOUT_MS))
                 ])
                 
                 if (mountedRef.current && profileData) {
                   setProfile(profileData)
-                  // Clear sessionStorage flag once we have the real profile
-                  if (profileData.onboarding_completed) {
-                    sessionStorage.removeItem('onboardingComplete')
-                  }
+                  setProfileLoading(false)
                   return // Success - exit retry loop
                 }
               } catch (err) {
                 if (i === retries) {
-                  // Final retry failed - log error but don't block UI
+                  // Final retry failed - set safe default
                   console.warn('[AuthContext] Profile fetch failed after retries:', err.message)
-                  // Try to check Firestore directly for onboarding_completed status
+                  // Try one more direct check
                   try {
                     const profileRef = doc(db, 'profiles', firebaseUser.uid)
                     const profileSnap = await getDoc(profileRef)
                     if (profileSnap.exists() && mountedRef.current) {
                       const data = profileSnap.data()
-                      // Update profile with at least the onboarding_completed status
-                      setProfile(prev => ({
-                        ...prev,
+                      setProfile({
+                        id: firebaseUser.uid,
+                        ...data,
                         onboarding_completed: data.onboarding_completed || false
-                      }))
+                      })
+                    } else {
+                      // Profile doesn't exist - create empty one with safe default
+                      const emptyProfile = {
+                        id: firebaseUser.uid,
+                        onboarding_completed: false,
+                        updated_at: new Date().toISOString()
+                      }
+                      await setDoc(profileRef, emptyProfile)
+                      if (mountedRef.current) {
+                        setProfile(emptyProfile)
+                      }
                     }
                   } catch (directErr) {
                     console.error('[AuthContext] Direct profile check failed:', directErr)
+                    // Set safe default profile
+                    if (mountedRef.current) {
+                      setProfile({
+                        id: firebaseUser.uid,
+                        onboarding_completed: false
+                      })
+                    }
                   }
+                  setProfileLoading(false)
                 } else {
                   // Wait before retry (exponential backoff)
                   await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
@@ -127,8 +150,15 @@ export function AuthProvider({ children }) {
           }
           
           fetchWithRetry().catch(() => {
-            // All retries failed - keep minimal profile
+            // All retries failed - set safe default
             console.warn('[AuthContext] Profile fetch failed completely')
+            if (mountedRef.current) {
+              setProfile({
+                id: firebaseUser.uid,
+                onboarding_completed: false
+              })
+              setProfileLoading(false)
+            }
           })
         } else {
           // User is signed out
@@ -139,31 +169,60 @@ export function AuthProvider({ children }) {
           }
           setUser(null)
           setProfile(null)
-          setLoading(false)
+          setAuthLoading(false)
+          setProfileLoading(false)
         }
       } catch (err) {
         // Catch any errors to prevent white screen
         console.error('[AuthContext] Error in auth state listener:', err)
         if (mountedRef.current) {
-          setLoading(false)
+          setAuthLoading(false)
+          setProfileLoading(false)
+          // On error, if we don't have a user yet, ensure we're in a clean state
+          // This prevents getting stuck on loading screen
         }
       }
     })
 
+    // Ensure timeout always clears loading state if listener never fires
+    // This handles cases where Firebase Auth fails to initialize
+    const safetyTimeout = setTimeout(() => {
+      if (mountedRef.current && !timeoutCleared) {
+        console.warn('[AuthContext] Safety timeout - auth listener may not have fired')
+        setAuthLoading(false)
+      }
+    }, 3000) // 3s safety net
+
     return () => {
       mountedRef.current = false
       clearTimeout(loadingTimeout)
+      clearTimeout(safetyTimeout)
       unsubscribe()
     }
   }, [navigate])
 
+  // Profile state helpers
+  const isProfileReady = profile !== null && profile.id === user?.id
+  const needsOnboarding = isProfileReady && profile.onboarding_completed === false
+  const isOnboardingComplete = isProfileReady && profile.onboarding_completed === true
+
   const value = {
     user,
     profile,
-    loading,
+    authLoading,      // Initial auth check
+    profileLoading,   // Profile fetch in progress
+    loading: authLoading || profileLoading, // Combined for backwards compatibility
+    isProfileReady,
+    needsOnboarding,
+    isOnboardingComplete,
     refreshProfile: async () => {
       if (user) {
-        await fetchProfile(user.id)
+        setProfileLoading(true)
+        try {
+          await fetchProfile(user.id)
+        } finally {
+          setProfileLoading(false)
+        }
       }
     },
     /** Update profile in memory (e.g. after onboarding save so Home doesn't redirect back) */
@@ -173,21 +232,14 @@ export function AuthProvider({ children }) {
       }
     },
     signOut: async () => {
-      setLoading(true)
       try {
-        // Update offline status before signing out
         if (user?.id) {
-          await updatePresence(user.id, false)
+          updatePresence(user.id, false).catch(() => {})
         }
         await firebaseSignOut(auth)
-        if (mountedRef.current) {
-          setProfile(null)
-          setUser(null)
-          setLoading(false)
-        }
+        // onAuthStateChanged will fire and clear user/profile state
       } catch (err) {
         console.error('Sign out error:', err)
-        if (mountedRef.current) setLoading(false)
       }
     },
   }

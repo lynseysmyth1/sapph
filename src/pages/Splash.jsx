@@ -1,24 +1,16 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import SignIn from './SignIn'
 import './Splash.css'
 
 export default function Splash() {
-  const { user, loading } = useAuth()
-  const navigate = useNavigate()
+  const { authLoading } = useAuth()
   const [step, setStep] = useState('choice') // 'choice' | 'method'
   const [intent, setIntent] = useState(null) // 'create' | 'signin'
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [authError, setAuthError] = useState('')
   const isNative = Capacitor.isNativePlatform()
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate('/home', { replace: true })
-    }
-  }, [user, loading, navigate])
 
   // Defer state update so tap handler returns immediately (avoids blocking main thread on iOS)
   const goToMethod = (createOrSignIn) => {
@@ -41,7 +33,7 @@ export default function Splash() {
     setTimeout(() => setShowEmailForm(true), 0)
   }
 
-  if (loading) return <div className="app-loading">Loading…</div>
+  if (authLoading) return <div className="app-loading">Loading…</div>
 
   return (
     <div className="splash">

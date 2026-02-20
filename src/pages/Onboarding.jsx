@@ -394,13 +394,8 @@ export default function Onboarding() {
       setLoading(false);
       setSaveStatus(null);
       
-      // Update profile in memory immediately
+      // Update profile in memory immediately (ensures Home component sees the update)
       updateProfile({ onboarding_completed: true });
-      
-      // Set sessionStorage flag
-      try {
-        sessionStorage.setItem('onboardingComplete', user.id);
-      } catch (_) {}
       
       // Navigate immediately (don't wait for full save)
       navigate('/home', { replace: true });

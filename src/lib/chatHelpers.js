@@ -94,8 +94,8 @@ export async function recordLike(fromUserId, toUserId, likeType) {
   const snapshot = await getDocs(q)
   
   if (!snapshot.empty) {
-    // Like already exists
-    return snapshot.docs[0].id
+    // Like already exists — return consistent shape
+    return { likeId: snapshot.docs[0].id, isMatch: false }
   }
   
   // Create new like
@@ -112,22 +112,10 @@ export async function recordLike(fromUserId, toUserId, likeType) {
   const isMatch = await checkMatch(fromUserId, toUserId, likeType)
   
   if (isMatch) {
-    // Update both likes to mark as matched
+    // Mark this like as matched
     await updateDoc(likeRef, { matched: true })
     
-    // Update the other like document
-    const q2 = query(
-      likesRef,
-      where('fromUserId', '==', toUserId),
-      where('toUserId', '==', fromUserId),
-      where('likeType', '==', likeType)
-    )
-    const snapshot2 = await getDocs(q2)
-    if (!snapshot2.empty) {
-      await updateDoc(snapshot2.docs[0].ref, { matched: true })
-    }
-    
-    // Create conversation if matched
+    // Create conversation for the matched pair
     await getOrCreateConversation(fromUserId, toUserId, likeType)
     
     return { likeId: likeRef.id, isMatch: true }

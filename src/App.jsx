@@ -24,35 +24,39 @@ const Chat = lazy(() => import('./pages/Chat'))
 const TestFirebase = lazy(() => import('./pages/TestFirebase'))
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, authLoading } = useAuth()
 
-  if (loading) return <div className="app-loading">Loading…</div>
+  if (authLoading) return <PageLoader />
   if (!user) return <Navigate to="/signin" replace />
 
   return children
 }
 
-/** When user is already signed in, redirect to app (so WebView reliably leaves splash/signin) */
+/** Single source of truth for initial routing decisions */
 function SplashOrRedirect() {
-  const { user, loading, profile } = useAuth()
-  // Wait for loading to complete, then check user
-  if (loading) return <div className="app-loading">Loading…</div>
-  if (user) {
-    // If user just completed onboarding (sessionStorage), go to home even before profile refresh
-    const justCompleted = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('onboardingComplete') === user.id
-    if (justCompleted) return <Navigate to="/home" replace />
-    // If profile exists and onboarding is incomplete, go to onboarding
-    if (profile && profile.onboarding_completed === false) {
-      return <Navigate to="/onboarding" replace />
-    }
-    return <Navigate to="/home" replace />
+  const { user, authLoading, profile, profileLoading } = useAuth()
+
+  // Wait for Firebase auth check to complete
+  if (authLoading) return <PageLoader />
+
+  // Not authenticated → show splash
+  if (!user) return <Splash />
+
+  // Authenticated but profile fetch still in flight → wait
+  if (profileLoading) return <PageLoader />
+
+  // Profile loaded and incomplete → onboarding
+  if (!profile || profile.onboarding_completed === false) {
+    return <Navigate to="/onboarding" replace />
   }
-  return <Splash />
+
+  // Profile complete → home
+  return <Navigate to="/home" replace />
 }
 
 function SignInOrRedirect() {
-  const { user, loading } = useAuth()
-  if (!loading && user) return <Navigate to="/home" replace />
+  const { user, authLoading } = useAuth()
+  if (!authLoading && user) return <Navigate to="/home" replace />
   return <SignIn /> 
 }
 
