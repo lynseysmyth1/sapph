@@ -6,7 +6,7 @@ import { db } from '../../lib/firebase'
 import '../Profile.css'
 
 const RELATIONSHIP_STYLE_OPTIONS = [
-  'ENM', 'Exploring', 'Figuring it out', 'Monogamy', 
+  'Exploring', 'Figuring it out', 'Monogamy', 
   'Non monogamous', 'Poly', 'Prefer not to say'
 ]
 

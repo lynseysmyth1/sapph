@@ -26,7 +26,7 @@ const ONBOARDING_STEPS = [
   { type: 'textarea', id: 'bio', label: "Next we'd love you to tell people a little bit more about yourself with a short bio.", hint: 'Let people know a little about you, what you love in life and how you spend your time.', placeholder: 'Write your bio...', maxLength: 500, required: true },
   { type: 'textarea', id: 'conversation_starter', label: 'Now we have our conversation starter', hint: "Sometimes it's hard to know how to kick start the first chat — this gives the other person some hints.", placeholder: 'e.g. Ask me about my favourite hike...', maxLength: 200, required: false },
   { type: 'checkbox', id: 'connection_goals', label: 'What are your connection goals?', required: true, options: ['Friends', 'Hookup', 'Life partner', 'Long term', 'Long term, open to short', 'Relationship', 'Short term', 'Short term, open to serious'] },
-  { type: 'checkbox', id: 'relationship_style', label: 'What style of relationship are you looking for?', required: true, options: ['ENM', 'Exploring', 'Figuring it out', 'Monogamy', 'Non monogamous', 'Poly', 'Prefer not to say'] },
+  { type: 'checkbox', id: 'relationship_style', label: 'What style of relationship are you looking for?', required: true, options: ['Exploring', 'Figuring it out', 'Monogamy', 'Non monogamous', 'Poly', 'Prefer not to say'] },
   { type: 'group', id: 'vices', fields: [
     { type: 'heading', label: 'Tell us a little about any vices' },
     { id: 'smoking', label: 'Smoking', type: 'radio', required: true, options: ['No', 'Sometimes', 'Vape', 'Yes'] },
@@ -34,7 +34,7 @@ const ONBOARDING_STEPS = [
     { id: 'marijuana', label: 'Weed', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
     { id: 'drugs', label: 'Other drugs', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
   ]},
-  { type: 'checkbox', id: 'pets', label: "Pets are an important part of our lives — we'd love to know if you have any", required: true, options: ['Birds', 'Cat', 'Dog', 'Fish', 'No pets', 'Reptile', 'Small animal'] },
+  { type: 'checkbox', id: 'pets', label: "Pets are an important part of our lives — we'd love to know if you have any", required: true, options: ['Birds', 'Cat', 'Dog', 'Fish', 'Reptile', 'Small animal', 'No pets'] },
   { type: 'radio', id: 'zodiac_sign', label: "Finally we'd love to know what zodiac sign you are", hint: "We all know this is key in any queer relationship ✨", required: true, options: ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] },
   { type: 'intro', id: 'intro_intimate', body: "To finish, a couple of more intimate questions", note: "(remember you can always hide these answers on your profile or skip them)" },
   { type: 'checkbox', id: 'sex_preferences', label: 'What is your sexual preference?', required: false, options: ['Bottom', 'Pillow princess', 'Power bottom', 'Power top', 'Service top', 'Stone top', 'Switch', 'Top', 'Prefer not to share'] },
