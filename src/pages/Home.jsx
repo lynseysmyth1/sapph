@@ -550,22 +550,34 @@ export default function Home() {
 
           {/* Current profile — full card with all interactive content */}
           <div className="profile-scroll-area">
-            <main className="profile-card">
-              {/* Photo Section – touch handlers scoped here so swipe cycles photos without blocking page scroll */}
+            <main
+              className="profile-card"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onTouchEndCapture={onTouchEndCapture}
+            >
+              {/* Photo Section */}
               {showField('photos') && (
-                <section
-                  className="profile-photo-section"
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                  onTouchEndCapture={onTouchEndCapture}
-                >
+                <section className="profile-photo-section">
                   {currentProfile.photos?.length > 0 ? (
                     <div className="main-photo-container">
                       <img
                         src={currentProfile.photos.filter(url => url.startsWith('http'))[activePhotoIndex] || currentProfile.photos.filter(url => url.startsWith('http'))[0]}
                         alt={currentProfile.full_name}
                         className="main-photo"
+                        onClick={(e) => {
+                          const photos = currentProfile.photos.filter(url => url.startsWith('http'))
+                          if (photos.length <= 1) return
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          const mid = rect.left + rect.width / 2
+                          if (e.clientX < mid) {
+                            setActivePhotoIndex(prev => Math.max(0, prev - 1))
+                          } else {
+                            setActivePhotoIndex(prev => Math.min(photos.length - 1, prev + 1))
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
                       />
                       <div className="photo-indicators">
                         {currentProfile.photos.filter(url => url.startsWith('http')).map((_, i) => (

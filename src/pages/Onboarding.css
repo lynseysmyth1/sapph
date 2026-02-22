@@ -442,6 +442,16 @@
   border: none;
 }
 
+.sortable-photo {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.sortable-photo:active {
+  cursor: grabbing;
+}
+
 .photo-preview img {
   width: 100%;
   height: 100%;

@@ -5,7 +5,32 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 import { db, storage } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import './Onboarding.css';
+
+function SortablePhotoItem({ id, url, index, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="photo-preview sortable-photo">
+      <img src={url} alt={`Upload ${index + 1}`} />
+      <button
+        type="button"
+        className="remove-photo"
+        onPointerDown={e => e.stopPropagation()}
+        onClick={() => onRemove(index)}
+        aria-label="Remove"
+      >&times;</button>
+    </div>
+  );
+}
 
 // Full onboarding steps – types: intro, completion, text, textarea, radio, checkbox, photos, group
 const ONBOARDING_STEPS = [
@@ -74,6 +99,22 @@ export default function Onboarding() {
   const [error, setError] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
   const [footerBottom, setFooterBottom] = useState(0);
+
+  // dnd-kit sensors — support both pointer (desktop) and touch (mobile)
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
+
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const photos = formData.photos || [];
+    const oldIndex = photos.indexOf(active.id);
+    const newIndex = photos.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    handleInputChange('photos', arrayMove(photos, oldIndex, newIndex));
+    setPhotoFiles(prev => arrayMove(prev, oldIndex, newIndex));
+  };
 
   // Log steps for debugging
   console.log('[Onboarding] Total steps:', ONBOARDING_STEPS.length);
@@ -600,23 +641,24 @@ export default function Onboarding() {
               <h2 className="question-label">{currentStep.label}</h2>
               {currentStep.hint && <p className="question-hint">{currentStep.hint}</p>}
               <div className="photos-upload-container">
-                <div className="photos-grid">
-                  {[...Array(6)].map((_, i) => {
-                    const url = formData.photos?.[i];
-                    return url ? (
-                      <div key={i} className="photo-preview">
-                        <img src={url} alt={`Upload ${i + 1}`} />
-                        <button type="button" className="remove-photo" onClick={() => removePhoto(i)} aria-label="Remove">&times;</button>
-                      </div>
-                    ) : (
-                      <label key={i} className="photo-add-btn">
-                        <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} hidden />
-                        <span>+</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <p className="photo-hint">Add up to 6 photos — optional (headshot first recommended)</p>
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={formData.photos || []} strategy={rectSortingStrategy}>
+                    <div className="photos-grid">
+                      {/* Filled sortable slots */}
+                      {(formData.photos || []).map((url, i) => (
+                        <SortablePhotoItem key={url} id={url} url={url} index={i} onRemove={removePhoto} />
+                      ))}
+                      {/* Empty add slots to fill up to 6 */}
+                      {[...Array(Math.max(0, 6 - (formData.photos || []).length))].map((_, i) => (
+                        <label key={`add-${i}`} className="photo-add-btn">
+                          <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} hidden />
+                          <span>+</span>
+                        </label>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                <p className="photo-hint">Add up to 6 photos — drag to reorder</p>
               </div>
               {hideShowOnProfile ? <p className="always-visible-note">Always visible on your profile</p> : (
                 <div className="visibility-toggle">
