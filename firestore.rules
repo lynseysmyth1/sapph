@@ -43,6 +43,14 @@ service cloud.firestore {
       }
     }
     
+    // Passes - users can create their own passes and read passes they created
+    match /passes/{passId} {
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.fromUserId;
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.fromUserId;
+    }
+
     // Presence - users can update their own presence, read anyone's
     match /presence/{userId} {
       allow read: if request.auth != null;

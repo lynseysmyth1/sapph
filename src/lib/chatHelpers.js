@@ -114,14 +114,33 @@ export async function recordLike(fromUserId, toUserId, likeType) {
   if (isMatch) {
     // Mark this like as matched
     await updateDoc(likeRef, { matched: true })
-    
-    // Create conversation for the matched pair
-    await getOrCreateConversation(fromUserId, toUserId, likeType)
-    
-    return { likeId: likeRef.id, isMatch: true }
+
+    // Create conversation for the matched pair and capture the ID
+    const conversationId = await getOrCreateConversation(fromUserId, toUserId, likeType)
+
+    return { likeId: likeRef.id, isMatch: true, conversationId }
   }
-  
-  return { likeId: likeRef.id, isMatch: false }
+
+  return { likeId: likeRef.id, isMatch: false, conversationId: null }
+}
+
+/**
+ * Record a pass from one user to another (persisted so they don't reappear)
+ */
+export async function recordPass(fromUserId, toUserId) {
+  const passesRef = collection(db, 'passes')
+  const q = query(
+    passesRef,
+    where('fromUserId', '==', fromUserId),
+    where('toUserId', '==', toUserId)
+  )
+  const snap = await getDocs(q)
+  if (!snap.empty) return  // already passed
+  await addDoc(passesRef, {
+    fromUserId,
+    toUserId,
+    createdAt: serverTimestamp()
+  })
 }
 
 /**

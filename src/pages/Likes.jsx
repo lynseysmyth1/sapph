@@ -1,9 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { getUsersWhoLikedMe } from '../lib/discoveryHelpers'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { getUsersWhoLikedMe, getMutualMatches } from '../lib/discoveryHelpers'
 import './Likes.css'
 
 export default function Likes() {
@@ -11,8 +9,9 @@ export default function Likes() {
   const pathname = location.pathname
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState('heart') // 'heart' or 'friendship'
-  const [likes, setLikes] = useState([])
+  // 'likes' shows one-way people who liked you; 'matches' shows mutual matches
+  const [activeTab, setActiveTab] = useState('matches')
+  const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -22,48 +21,40 @@ export default function Likes() {
     }
 
     setLoading(true)
-    const loadLikes = async () => {
+    const load = async () => {
       try {
-        const usersWhoLiked = await getUsersWhoLikedMe(user.id, activeTab)
-        setLikes(usersWhoLiked)
+        if (activeTab === 'matches') {
+          const matches = await getMutualMatches(user.id)
+          setItems(matches)
+        } else {
+          const liked = await getUsersWhoLikedMe(user.id)
+          // Show only one-way likes (not yet mutual)
+          setItems(liked.filter(l => !l.matched))
+        }
       } catch (error) {
-        console.error('Error loading likes:', error)
+        console.error('Error loading likes/matches:', error)
+        setItems([])
       } finally {
         setLoading(false)
       }
     }
 
-    loadLikes()
+    load()
   }, [user, activeTab])
 
-  const handleLikeClick = async (likedUserId, likeType) => {
-    // Check if there's a conversation already
-    try {
-      // Try to find conversation
-      const conversationsRef = collection(db, 'conversations')
-      const q = query(
-        conversationsRef,
-        where('participants', 'array-contains', user.id),
-        where('likeType', '==', likeType)
-      )
-      const snapshot = await getDocs(q)
-      
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data()
-        if (data.participants.includes(likedUserId)) {
-          // Conversation exists, navigate to it
-          navigate(`/chat/${docSnap.id}`)
-          return
-        }
-      }
-      
-      // No conversation yet, navigate to messages
-      navigate('/messages')
-    } catch (error) {
-      console.error('Error checking conversation:', error)
+  const handleItemClick = (item) => {
+    if (activeTab === 'matches' && item.conversationId) {
+      navigate(`/chat/${item.conversationId}`)
+    } else if (activeTab === 'matches') {
       navigate('/messages')
     }
+    // One-way likes are not tappable (no conversation yet)
   }
+
+  const emptyHeading = activeTab === 'matches' ? 'No matches yet' : 'No likes yet'
+  const emptyText = activeTab === 'matches'
+    ? 'When you and someone else both like or wave at each other, they\'ll show up here.'
+    : 'When someone likes or waves at you, they\'ll show up here.'
 
   return (
     <div className="likes-container">
@@ -75,62 +66,59 @@ export default function Likes() {
         {/* Tabs */}
         <div className="likes-tabs">
           <button
-            className={`likes-tab ${activeTab === 'heart' ? 'active' : ''}`}
-            onClick={() => setActiveTab('heart')}
+            className={`likes-tab ${activeTab === 'matches' ? 'active' : ''}`}
+            onClick={() => setActiveTab('matches')}
           >
             <svg viewBox="0 0 24 24" fill="currentColor" className="tab-icon">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            <span>Likes</span>
+            <span>Matches</span>
           </button>
           <button
-            className={`likes-tab ${activeTab === 'friendship' ? 'active' : ''}`}
-            onClick={() => setActiveTab('friendship')}
+            className={`likes-tab ${activeTab === 'likes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('likes')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tab-icon">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            <span>Friendship</span>
+            <span>Likes</span>
           </button>
         </div>
 
         <section className="likes-content">
           {loading ? (
-            <div className="likes-loading">Loading likes...</div>
-          ) : likes.length === 0 ? (
+            <div className="likes-loading">Loading...</div>
+          ) : items.length === 0 ? (
             <div className="likes-empty">
               <div className="likes-empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </div>
-              <p className="likes-empty-heading">No matches yet</p>
-              <p className="likes-empty-text">When someone matches with you, they'll show up here.</p>
+              <p className="likes-empty-heading">{emptyHeading}</p>
+              <p className="likes-empty-text">{emptyText}</p>
             </div>
           ) : (
             <div className="likes-list">
-              {likes.map((like) => (
+              {items.map((item) => (
                 <div
-                  key={like.id}
-                  className="like-item"
-                  onClick={() => handleLikeClick(like.id, like.likeType)}
+                  key={item.id}
+                  className={`like-item${activeTab === 'matches' ? ' like-item-tappable' : ''}`}
+                  onClick={() => handleItemClick(item)}
                 >
                   <div className="like-avatar">
-                    {like.photos?.[0] ? (
-                      <img src={like.photos[0]} alt={like.full_name} />
+                    {item.photos?.find(u => u.startsWith('http')) ? (
+                      <img src={item.photos.find(u => u.startsWith('http'))} alt={item.full_name} />
                     ) : (
                       <div className="avatar-placeholder">
-                        {like.full_name?.charAt(0).toUpperCase() || '?'}
+                        {item.full_name?.charAt(0).toUpperCase() || '?'}
                       </div>
                     )}
                   </div>
                   <div className="like-info">
                     <div className="like-header">
-                      <span className="like-name">{like.full_name}</span>
-                      {like.likeType === 'heart' ? (
+                      <span className="like-name">{item.full_name}</span>
+                      {item.likeType === 'heart' ? (
                         <svg viewBox="0 0 24 24" fill="currentColor" className="like-icon heart-icon">
                           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                         </svg>
@@ -143,8 +131,15 @@ export default function Likes() {
                         </svg>
                       )}
                     </div>
-                    {like.matched && (
-                      <span className="like-matched">It's a match! 💚</span>
+                    {activeTab === 'matches' ? (
+                      <span className="like-matched">
+                        {item.likeType === 'friendship' ? "You're friends!" : "It's a match!"}
+                        {item.conversationId && (
+                          <span className="match-chat-hint"> · Tap to chat</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="like-pending">Liked you</span>
                     )}
                   </div>
                 </div>

@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect, useRef } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { recordLike } from '../lib/chatHelpers'
+import { recordLike, recordPass } from '../lib/chatHelpers'
 import { getDiscoveryProfiles } from '../lib/discoveryHelpers'
 import './Home.css'
 
@@ -40,9 +40,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false) // Start false, will be set true when actually loading profiles
   const [liking, setLiking] = useState(false)
   const [showMatch, setShowMatch] = useState(false)
-  const [matchedUserId, setMatchedUserId] = useState(null)
+  const [matchedProfile, setMatchedProfile] = useState(null)
+  const [matchedConversationId, setMatchedConversationId] = useState(null)
+  const [matchedLikeType, setMatchedLikeType] = useState(null)
   const [passedUserIds, setPassedUserIds] = useState([])
-  
+  const [reloadIncludingPassed, setReloadIncludingPassed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+
   // Swipe gesture tracking — refs update synchronously, avoiding React state async race conditions
   const touchStartRef = useRef(null)
   const touchEndRef = useRef(null)
@@ -120,16 +124,18 @@ export default function Home() {
     const loadProfiles = async () => {
       setLoading(true)
       loadingStartRef.current = Date.now()
+      console.log('[Home] loadProfiles START | user.id:', user.id, '| passedUserIds:', passedUserIds.length, '| reloadIncludingPassed:', reloadIncludingPassed)
       try {
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Profile load timeout')), 15000)
         )
 
         const discoveryProfiles = await Promise.race([
-          getDiscoveryProfiles(user.id, passedUserIds, 50),
+          getDiscoveryProfiles(user.id, passedUserIds, 50, { includePassed: reloadIncludingPassed }),
           timeoutPromise
         ])
 
+        console.log('[Home] loadProfiles DONE | received:', discoveryProfiles.length, 'profiles')
         setProfiles(discoveryProfiles)
         if (discoveryProfiles.length > 0) {
           setCurrentProfile(discoveryProfiles[0])
@@ -142,6 +148,7 @@ export default function Home() {
         setProfiles([])
         setCurrentProfile(null)
       } finally {
+        setReloadIncludingPassed(false)
         // Enforce 200ms minimum so skeleton never flashes then vanishes instantly
         const elapsed = Date.now() - (loadingStartRef.current || Date.now())
         const remaining = Math.max(0, 200 - elapsed)
@@ -153,7 +160,10 @@ export default function Home() {
     }
 
     loadProfiles()
-  }, [user?.id, profile?.id, profile?.onboarding_completed, profileLoading, passedUserIds])
+    // reloadIncludingPassed intentionally omitted — we only want effect to run when passedUserIds
+    // (or other deps) change; resetting it in finally must not trigger another load
+    // reloadKey forces a reload when "See All Profiles Again" is tapped (even if passedUserIds unchanged)
+  }, [user?.id, profile?.id, profile?.onboarding_completed, profileLoading, passedUserIds, reloadKey])
 
   // Preload all photos for the current profile and the next profile's photos
   useEffect(() => {
@@ -172,30 +182,46 @@ export default function Home() {
     }
   }, [currentProfile?.id])
 
+  // Animate the current card off to the left, then run callback
+  const animateCardOut = (direction = 'left', callback) => {
+    if (!cardTrackRef.current) { callback(); return }
+    isAnimatingRef.current = true
+    const translateTarget = direction === 'left' ? '-50%' : '50%'
+    cardTrackRef.current.style.transition = 'transform 0.25s ease'
+    cardTrackRef.current.style.transform = `translateX(${translateTarget})`
+    setTimeout(() => {
+      if (cardTrackRef.current) {
+        cardTrackRef.current.style.transition = 'none'
+        cardTrackRef.current.style.transform = 'translateX(0)'
+      }
+      isAnimatingRef.current = false
+      callback()
+    }, 250)
+  }
+
   const handleLike = async (likeType) => {
     if (!currentProfile || !user?.id || liking) return
 
+    const likedProfile = currentProfile
+
     setLiking(true)
+
+    // 1. Animate immediately (optimistic — same as Pass)
+    animateCardOut('left', () => loadNextProfile())
+
+    // 2. Save in background; show match overlay when result returns
     try {
-      const result = await recordLike(user.id, currentProfile.id, likeType)
-      
-      if (result.isMatch) {
-        // Show match notification
+      const result = await recordLike(user.id, likedProfile.id, likeType)
+      if (result?.isMatch) {
+        setMatchedProfile(likedProfile)
+        setMatchedConversationId(result.conversationId || null)
+        setMatchedLikeType(likeType)
         setShowMatch(true)
-        setMatchedUserId(currentProfile.id)
-        
-        // After 3 seconds, navigate to messages or show next profile
-        setTimeout(() => {
-          setShowMatch(false)
-          loadNextProfile()
-        }, 3000)
-      } else {
-        // Just liked, show next profile
-        loadNextProfile()
+        setTimeout(() => setShowMatch(false), 5000)
       }
     } catch (error) {
       console.error('Error recording like:', error)
-      alert('Failed to record like. Please try again.')
+      // Card already advanced; non-blocking (could add toast later)
     } finally {
       setLiking(false)
     }
@@ -203,8 +229,10 @@ export default function Home() {
 
   const handlePass = () => {
     if (!currentProfile) return
-    setPassedUserIds(prev => [...prev, currentProfile.id])
-    loadNextProfile()
+    const passedId = currentProfile.id
+    recordPass(user.id, passedId).catch(() => {})
+    setPassedUserIds(prev => [...prev, passedId])
+    animateCardOut('left', () => loadNextProfile())
   }
 
   const loadNextProfile = () => {
@@ -233,8 +261,9 @@ export default function Home() {
   }
 
   const handleReloadAllProfiles = () => {
-    // Reset passedUserIds to empty array, which will trigger useEffect to reload all profiles
+    setReloadKey(k => k + 1)
     setPassedUserIds([])
+    setReloadIncludingPassed(true)
     setLoading(true)
   }
 
@@ -438,9 +467,10 @@ export default function Home() {
   if (!currentProfile) {
     return (
       <div className="home-container">
-        <main className="profile-card">
-          <div className="profile-loading">
-            <div style={{ textAlign: 'center' }}>
+        <div className="card-stage card-stage-no-profiles">
+          <div className="no-profiles-content">
+            <div className="profile-loading">
+              <div style={{ textAlign: 'center' }}>
               <p>No more new profiles to view right now.</p>
               <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '8px', marginBottom: '1.5rem' }}>
                 Would you like to see all profiles again?
@@ -465,9 +495,10 @@ export default function Home() {
               >
                 {loading ? 'Loading...' : 'See All Profiles Again'}
               </button>
+              </div>
             </div>
           </div>
-        </main>
+        </div>
         <nav className="bottom-nav">
           <Link to="/home" className={`nav-item ${pathname === '/home' ? 'active' : ''}`}>
             <svg viewBox="0 0 24 24" fill="currentColor" className="nav-icon">
@@ -526,21 +557,55 @@ export default function Home() {
           <button type="button" onClick={dismissSaveWarning} className="dismiss-warning" aria-label="Dismiss">×</button>
         </div>
       )}
-      {/* Match Notification */}
-      {showMatch && (
-        <div className="match-overlay">
-          <div className="match-modal">
-            <h2 className="match-title">It's a Match! 🎉</h2>
-            <p className="match-text">You and {currentProfile?.full_name} liked each other!</p>
-            <button 
-              className="match-button" 
-              onClick={() => {
-                setShowMatch(false)
-                navigate('/messages')
-              }}
-            >
-              Start Chatting
-            </button>
+      {/* Match Overlay */}
+      {showMatch && matchedProfile && (
+        <div className="match-overlay" onClick={() => setShowMatch(false)}>
+          <div className="match-modal" onClick={e => e.stopPropagation()}>
+            <h2 className="match-title">
+              {matchedLikeType === 'friendship' ? "You're friends!" : "It's a match!"}
+            </h2>
+            <p className="match-subtitle">
+              {matchedLikeType === 'friendship'
+                ? `You and ${matchedProfile.full_name} both want to be friends!`
+                : `You and ${matchedProfile.full_name} liked each other!`}
+            </p>
+            <div className="match-photos">
+              <div className="match-photo-wrap">
+                <img
+                  src={profile?.photos?.find(u => u.startsWith('http'))}
+                  alt="You"
+                  className="match-photo"
+                />
+              </div>
+              <div className="match-photo-wrap match-photo-overlap">
+                <img
+                  src={matchedProfile.photos?.find(u => u.startsWith('http'))}
+                  alt={matchedProfile.full_name}
+                  className="match-photo"
+                />
+              </div>
+            </div>
+            <div className="match-actions">
+              <button
+                className="match-button match-button-primary"
+                onClick={() => {
+                  setShowMatch(false)
+                  if (matchedConversationId) {
+                    navigate(`/chat/${matchedConversationId}`)
+                  } else {
+                    navigate('/messages')
+                  }
+                }}
+              >
+                Send a message
+              </button>
+              <button
+                className="match-button match-button-secondary"
+                onClick={() => setShowMatch(false)}
+              >
+                Keep browsing
+              </button>
+            </div>
           </div>
         </div>
       )}
