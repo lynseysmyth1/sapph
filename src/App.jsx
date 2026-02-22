@@ -62,16 +62,14 @@ function SignInOrRedirect() {
 
 function PageLoader() {
   return (
-    <div className="app-loading" style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#fff',
-      color: '#555'
-    }}>
-      <div>
-        <p>Loading…</p>
+    <div className="app-loading">
+      <div className="app-loading-brand">
+        <div className="app-loading-logo">S</div>
+        <div className="app-loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
     </div>
   )

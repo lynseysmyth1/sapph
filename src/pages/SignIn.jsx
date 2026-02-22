@@ -34,7 +34,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
 
   const goToMethod = (signInMode) => {
     setIsSignIn(signInMode)
-    setStep('method')
+    setStep('form')
     setMessage({ type: '', text: '' })
   }
 
@@ -43,14 +43,9 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
     setMessage({ type: '', text: '' })
   }
 
-  const goToForm = () => {
-    setStep('form')
-    setMessage({ type: '', text: '' })
-  }
-
   const handleButtonClick = (signInMode) => {
     setIsSignIn(signInMode)
-    setStep('method')
+    setStep('form')
   }
 
   // Use pointer + click so taps work on iOS and desktop; guard avoids double fire
@@ -246,40 +241,6 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
         </div>
       )}
 
-      {step === 'method' && (
-        <div className="signin-content signin-content-method">
-          {message.text && (
-            <div className={`signin-message signin-message--${message.type}`}>
-              {message.text}
-            </div>
-          )}
-          <div className="signin-buttons">
-            <button
-              type="button"
-              className="signin-btn signin-btn-back"
-              onClick={() => (onBack ? onBack() : goToChoice())}
-              disabled={loading}
-              aria-label="Back"
-            >
-              ← Back
-            </button>
-            <button
-              type="button"
-              className="signin-btn signin-btn-method signin-btn-email"
-              onClick={goToForm}
-              disabled={loading}
-              aria-label={isSignIn ? 'Sign in with email' : 'Create account with email'}
-            >
-              <svg className="signin-btn-email-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-                <path d="M22 6L12 13 2 6" />
-              </svg>
-              <span>{isSignIn ? 'Sign in with email' : 'Create account with email'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {step === 'forgot' && onBack ? (
         <div className="signin-sheet-form" role="dialog" aria-label="Reset password">
           <div className="signin-card" ref={formCardRef}>
@@ -393,7 +354,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
                   if (onBack && initialStep === 'form') {
                     onBack()
                   } else {
-                    setStep('method')
+                    setStep('choice')
                     setEmail('')
                     setPassword('')
                     setMessage({ type: '', text: '' })
@@ -451,7 +412,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
                 <button type="submit" className="signin-btn signin-btn-submit" disabled={loading}>
                   {loading ? (isSignIn ? 'Signing in…' : 'Creating account…') : (isSignIn ? 'Sign In' : 'Create Account')}
                 </button>
-                <button type="button" className="signin-link" onClick={() => { setStep('method'); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
+                <button type="button" className="signin-link" onClick={() => { setStep('choice'); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
               </form>
               <div className="signin-legal">
                 By tapping Sign in or Create account, you agree to our <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.

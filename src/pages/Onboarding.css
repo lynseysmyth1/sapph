@@ -11,6 +11,7 @@
   max-width: 500px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+  padding-bottom: 6rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -20,6 +21,7 @@
   background-color: white;
   color: var(--sapph-orange);
   width: 100%;
+  padding-top: env(safe-area-inset-top);
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   transition: background-color 0.4s ease, color 0.4s ease;
   z-index: 100;
@@ -250,8 +252,7 @@
 }
 
 .theme-divider .onboarding-footer {
-  margin-top: auto;
-  padding-bottom: 3rem;
+  background: var(--sapph-orange);
 }
 
 .theme-divider .btn-next {
@@ -348,6 +349,46 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--sapph-orange);
+}
+
+/* Height picker */
+.height-picker {
+  margin-top: 0.5rem;
+}
+
+.height-picker-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.height-select {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  font-family: 'Lato', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  border: none;
+  border-bottom: 2px solid #eeeeee;
+  background: transparent;
+  color: var(--sapph-text-body);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.height-select:focus {
+  outline: none;
+  border-bottom-color: var(--sapph-orange);
+}
+
+.height-preview {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sapph-orange);
+  margin: 1rem 0 0;
+  text-align: center;
 }
 
 /* Inputs */
@@ -547,12 +588,18 @@
   background: rgba(240, 107, 74, 0.05);
 }
 
-/* Footer Buttons */
+/* Footer Buttons — fixed so they float above the keyboard on iOS */
 .onboarding-footer {
-  margin-top: 4rem;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   gap: 1rem;
-  padding-bottom: 2rem;
+  padding: 0.75rem 1.5rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  background: var(--sapph-bg);
+  z-index: 200;
 }
 
 .btn-next, .btn-back {

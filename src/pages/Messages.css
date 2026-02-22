@@ -1,10 +1,10 @@
 .messages-container {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: white;
-  padding-bottom: 60px; /* Space for bottom nav */
+  overflow: hidden;
 }
 
 .messages-main {
@@ -14,7 +14,7 @@
 }
 
 .messages-header {
-  padding: 20px 20px 16px;
+  padding: calc(20px + env(safe-area-inset-top)) 20px 16px;
   border-bottom: 1px solid #eee;
 }
 
@@ -238,11 +238,10 @@
 
 /* Bottom nav */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
+  flex-shrink: 0;
+  height: auto;
+  min-height: 60px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: white;
   display: flex;
   justify-content: space-around;

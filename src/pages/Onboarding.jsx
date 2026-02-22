@@ -43,6 +43,18 @@ const ONBOARDING_STEPS = [
 ];
 
 const UPLOAD_TIMEOUT_MS = 60000;   // 60s for photo uploads
+
+// Height picker helpers — store/read as e.g. "5'6\""
+function parseHeight(str) {
+  if (!str) return { feet: '', inches: '0' };
+  const m = str.match(/^(\d+)'(\d+)"?/);
+  if (m) return { feet: m[1], inches: m[2] };
+  return { feet: '', inches: '0' };
+}
+function formatHeight(feet, inches) {
+  if (!feet) return '';
+  return `${feet}'${inches}"`;
+}
 const PROFILE_FIELDS = [
   'full_name', 'dob', 'height', 'location', 'hometown', 'ethnicity', 'job_title', 'political_alignment', 'children',
   'zodiac_sign', 'politics', 'drinking', 'smoking', 'marijuana', 'drugs', 'gender_identity',
@@ -61,6 +73,7 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [footerBottom, setFooterBottom] = useState(0);
 
   // Log steps for debugging
   console.log('[Onboarding] Total steps:', ONBOARDING_STEPS.length);
@@ -84,6 +97,22 @@ export default function Onboarding() {
       navigate('/signin', { replace: true });
     }
   }, [user, navigate]);
+
+  // Keep the Back/Next footer floating above the software keyboard on iOS
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onViewportChange = () => {
+      const keyboardHeight = window.innerHeight - vv.height;
+      setFooterBottom(Math.max(0, keyboardHeight));
+    };
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
+    return () => {
+      vv.removeEventListener('resize', onViewportChange);
+      vv.removeEventListener('scroll', onViewportChange);
+    };
+  }, []);
 
   function getStepLabel() {
     // Show progress across all non-intro / non-completion steps
@@ -507,7 +536,52 @@ export default function Onboarding() {
             </div>
           )}
 
-          {currentStep.type === 'text' && !currentStep.alsoCollectDob && (
+          {currentStep.type === 'text' && !currentStep.alsoCollectDob && currentStep.id === 'height' && (
+            <div className="question-item">
+              <h2 className="question-label">{currentStep.label}</h2>
+              <div className="height-picker">
+                <div className="height-picker-group">
+                  <select
+                    className="height-select"
+                    value={parseHeight(formData.height).feet}
+                    onChange={e => {
+                      const { inches } = parseHeight(formData.height);
+                      handleInputChange('height', formatHeight(e.target.value, inches || '0'));
+                    }}
+                  >
+                    <option value="">ft</option>
+                    {[4, 5, 6, 7].map(f => (
+                      <option key={f} value={String(f)}>{f} ft</option>
+                    ))}
+                  </select>
+                  <select
+                    className="height-select"
+                    value={parseHeight(formData.height).inches}
+                    onChange={e => {
+                      const { feet } = parseHeight(formData.height);
+                      handleInputChange('height', formatHeight(feet || '5', e.target.value));
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i} value={String(i)}>{i} in</option>
+                    ))}
+                  </select>
+                </div>
+                {formData.height && (
+                  <p className="height-preview">{formData.height}</p>
+                )}
+              </div>
+              <div className="visibility-toggle">
+                <label className="show-on-profile-checkbox">
+                  <input type="checkbox" checked={visibilityData['height'] !== false} onChange={e => handleVisibilityChange('height', e.target.checked)} />
+                  <span className="show-on-profile-checkmark"></span>
+                  <span className="show-on-profile-label">Show on profile</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {currentStep.type === 'text' && !currentStep.alsoCollectDob && currentStep.id !== 'height' && (
             <div className="question-item">
               <h2 className="question-label">{currentStep.label}</h2>
               <input type="text" className="onboarding-input" placeholder={currentStep.placeholder} value={formData[currentStep.id] || ''} onChange={e => handleInputChange(currentStep.id, e.target.value)} autoFocus />
@@ -654,7 +728,10 @@ export default function Onboarding() {
         {error && <div className="onboarding-error">{error}</div>}
 
         {!isCompletionStep && (
-          <footer className="onboarding-footer">
+          <footer
+            className="onboarding-footer"
+            style={footerBottom > 0 ? { bottom: footerBottom } : undefined}
+          >
             {showBackButton && <button type="button" className="btn-back" onClick={handleBack} disabled={loading}>Back</button>}
             <button type="button" className="btn-next" onClick={handleNext} disabled={loading}>Next</button>
           </footer>
