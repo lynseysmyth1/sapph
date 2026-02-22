@@ -23,6 +23,10 @@ function formatValue(value, fieldId) {
   return String(value).trim() || null
 }
 
+// Strip "Prefer not to say" / "Prefer not to share" answers before display
+const filterPreferNotToSay = (arr) =>
+  (arr || []).filter(v => v !== 'Prefer not to say' && v !== 'Prefer not to share')
+
 // Fields that are always shown on profile (no checkbox in onboarding)
 const ALWAYS_VISIBLE_IDS = new Set(['full_name', 'dob', 'photos', 'bio', 'conversation_starter'])
 
@@ -93,7 +97,7 @@ export default function PreviewProfile() {
   // Construct info line: 30 | She/Her | Non binary | Queer | Femme
   const infoParts = [
     showField('dob') && age,
-    showField('pronouns') && profile.pronouns?.length > 0 && profile.pronouns.join('/'),
+    showField('pronouns') && filterPreferNotToSay(profile.pronouns).length > 0 && filterPreferNotToSay(profile.pronouns).join('/'),
     showField('gender_identity') && profile.gender_identity,
     showField('sexual_identity') && profile.sexual_identity,
     showField('gender_expression') && profile.gender_expression
@@ -103,8 +107,8 @@ export default function PreviewProfile() {
 
   // Construct "Looking For" line
   const lookingForParts = [
-    ...(showField('connection_goals') ? (Array.isArray(profile.connection_goals) ? profile.connection_goals : [profile.connection_goals]) : []),
-    ...(showField('relationship_style') ? (Array.isArray(profile.relationship_style) ? profile.relationship_style : [profile.relationship_style]) : [])
+    ...(showField('connection_goals') ? filterPreferNotToSay(Array.isArray(profile.connection_goals) ? profile.connection_goals : [profile.connection_goals]) : []),
+    ...(showField('relationship_style') ? filterPreferNotToSay(Array.isArray(profile.relationship_style) ? profile.relationship_style : [profile.relationship_style]) : [])
   ].filter(Boolean)
   
   const lookingForLine = lookingForParts.join(' | ')
@@ -299,7 +303,7 @@ export default function PreviewProfile() {
                         <span className="category-value">{profile.height}</span>
                       </span>
                     )}
-                    {showField('children') && profile.children && (
+                    {showField('children') && profile.children && profile.children !== 'Prefer not to say' && (
                       <span className="category-item">
                         <span className="category-label sentence-case">Kids</span>
                         <span className="category-value">{profile.children}</span>
@@ -360,21 +364,21 @@ export default function PreviewProfile() {
 
             {/* Intimate Section - Grouped Category Style */}
             {(showField('sex_preferences') || showField('kinks')) && 
-             (profile.sex_preferences?.length > 0 || profile.kinks?.length > 0) && (
+             (filterPreferNotToSay(profile.sex_preferences).length > 0 || filterPreferNotToSay(profile.kinks).length > 0) && (
               <div className="profile-section">
                 <h3 className="section-header">INTIMACY:</h3>
                 <div className="about-me-category">
                   <div className="category-items">
-                    {showField('sex_preferences') && profile.sex_preferences?.length > 0 && (
+                    {showField('sex_preferences') && filterPreferNotToSay(profile.sex_preferences).length > 0 && (
                       <span className="category-item">
                         <span className="category-label sentence-case">Sex preference</span>
-                        <span className="category-value">{profile.sex_preferences.join(', ')}</span>
+                        <span className="category-value">{filterPreferNotToSay(profile.sex_preferences).join(', ')}</span>
                       </span>
                     )}
-                    {showField('kinks') && profile.kinks?.length > 0 && (
+                    {showField('kinks') && filterPreferNotToSay(profile.kinks).length > 0 && (
                       <span className="category-item">
                         <span className="category-label sentence-case">Kinks</span>
-                        <span className="category-value">{profile.kinks.join(', ')}</span>
+                        <span className="category-value">{filterPreferNotToSay(profile.kinks).join(', ')}</span>
                       </span>
                     )}
                   </div>

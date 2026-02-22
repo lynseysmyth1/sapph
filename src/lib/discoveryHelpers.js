@@ -2,12 +2,81 @@ import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/
 import { db } from './firebase'
 
 /**
+ * Calculate age in years from a dob string (ISO or YYYY-MM-DD).
+ * Returns null if unparseable.
+ */
+function calcAge(dob) {
+  if (!dob) return null
+  try {
+    const birth = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age > 0 ? age : null
+  } catch (_) {
+    return null
+  }
+}
+
+/**
+ * Returns true if the candidate profile passes all active matching preference filters.
+ * A filter is only applied if the current user has set a non-empty value for it.
+ * If a candidate is missing the relevant field, they are included (benefit of the doubt).
+ */
+function passesFilters(candidate, prefs) {
+  if (!prefs) return true
+
+  // Age range
+  const ageRange = prefs.age_range
+  if (ageRange && (ageRange.min != null || ageRange.max != null)) {
+    const age = calcAge(candidate.dob)
+    if (age !== null) {
+      if (ageRange.min != null && age < ageRange.min) return false
+      if (ageRange.max != null && age > ageRange.max) return false
+    }
+  }
+
+  // Gender identity
+  if (prefs.gender?.length > 0 && candidate.gender_identity) {
+    if (!prefs.gender.includes(candidate.gender_identity)) return false
+  }
+
+  // Relationship goals — match against candidate's connection_goals array
+  if (prefs.relationship_goals?.length > 0 && candidate.connection_goals?.length > 0) {
+    const overlaps = candidate.connection_goals.some(g => prefs.relationship_goals.includes(g))
+    if (!overlaps) return false
+  }
+
+  // Relationship style
+  if (prefs.relationship_style?.length > 0 && candidate.relationship_style?.length > 0) {
+    const overlaps = candidate.relationship_style.some(s => prefs.relationship_style.includes(s))
+    if (!overlaps) return false
+  }
+
+  // Sex preferences
+  if (prefs.sex_preferences?.length > 0 && candidate.sex_preferences?.length > 0) {
+    const overlaps = candidate.sex_preferences.some(s => prefs.sex_preferences.includes(s))
+    if (!overlaps) return false
+  }
+
+  // Family plans — match against candidate's children (string) field
+  if (prefs.family_plans?.length > 0 && candidate.children) {
+    if (!prefs.family_plans.includes(candidate.children)) return false
+  }
+
+  return true
+}
+
+/**
  * Get profiles of other users for discovery
  * Excludes current user, already-liked, already-passed, and session-passed users
- * @param {Object} options - { includePassed: boolean } When true, don't exclude Firestore passes (for "See All Profiles Again")
+ * @param {Object} options - { includePassed: boolean, matchingPreferences: object }
+ *   includePassed: When true, don't exclude Firestore passes (for "See All Profiles Again")
+ *   matchingPreferences: The current user's matching_preferences object for filtering
  */
 export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], maxResults = 20, options = {}) {
-  const { includePassed = false } = options
+  const { includePassed = false, matchingPreferences = null } = options
 
   try {
     // Fetch already-liked user IDs from Firestore (always exclude)
@@ -59,6 +128,11 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
 
       if (!profileData.full_name) {
         noNameCount++
+        continue
+      }
+
+      if (!passesFilters(profileData, matchingPreferences)) {
+        excludedCount++
         continue
       }
 

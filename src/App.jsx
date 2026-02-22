@@ -13,7 +13,7 @@ const PreviewProfile = lazy(() => import('./pages/PreviewProfile'))
 const AgeRangePreferences = lazy(() => import('./pages/preferences/AgeRangePreferences'))
 const DistancePreferences = lazy(() => import('./pages/preferences/DistancePreferences'))
 const GenderPreferences = lazy(() => import('./pages/preferences/GenderPreferences'))
-const ConnectionGoalsPreferences = lazy(() => import('./pages/preferences/ConnectionGoalsPreferences'))
+const SexPreferencePreferences = lazy(() => import('./pages/preferences/SexPreferencePreferences'))
 const RelationshipStylePreferences = lazy(() => import('./pages/preferences/RelationshipStylePreferences'))
 const RelationshipGoalsPreferences = lazy(() => import('./pages/preferences/RelationshipGoalsPreferences'))
 const InterestsPreferences = lazy(() => import('./pages/preferences/InterestsPreferences'))
@@ -148,10 +148,10 @@ export default function App() {
         }
       />
       <Route
-        path="/preferences/connection-goals"
+        path="/preferences/sex-preference"
         element={
           <ProtectedRoute>
-            <ConnectionGoalsPreferences />
+            <SexPreferencePreferences />
           </ProtectedRoute>
         }
       />

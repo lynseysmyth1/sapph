@@ -5,32 +5,28 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import '../Profile.css'
 
-const FAMILY_PLANS_OPTIONS = [
-  'Childfree, not having children',
-  'Child free, dating people with children',
-  'Have children',
-  "Have children, don't want more",
-  'Have children, open to more',
-  'Want children'
+const SEX_PREFERENCE_OPTIONS = [
+  'Bottom', 'Pillow princess', 'Power bottom', 'Power top',
+  'Service top', 'Stone top', 'Switch', 'Top'
 ]
 
-export default function FamilyPlansPreferences() {
+export default function SexPreferencePreferences() {
   const { user, profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
-  const [selectedPlans, setSelectedPlans] = useState([])
+  const [selectedOptions, setSelectedOptions] = useState([])
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (profile?.matching_preferences?.family_plans) {
-      setSelectedPlans(profile.matching_preferences.family_plans || [])
+    if (profile?.matching_preferences?.sex_preferences) {
+      setSelectedOptions(profile.matching_preferences.sex_preferences || [])
     }
   }, [profile])
 
-  const togglePlan = (plan) => {
-    setSelectedPlans(prev => 
-      prev.includes(plan)
-        ? prev.filter(p => p !== plan)
-        : [...prev, plan]
+  const toggleOption = (option) => {
+    setSelectedOptions(prev =>
+      prev.includes(option)
+        ? prev.filter(o => o !== option)
+        : [...prev, option]
     )
   }
 
@@ -40,13 +36,13 @@ export default function FamilyPlansPreferences() {
     try {
       const profileRef = doc(db, 'profiles', user.id)
       await updateDoc(profileRef, {
-        'matching_preferences.family_plans': selectedPlans,
+        'matching_preferences.sex_preferences': selectedOptions,
         updated_at: new Date().toISOString()
       })
       await refreshProfile()
       navigate('/profile')
     } catch (err) {
-      console.error('Error saving family plans preferences:', err)
+      console.error('Error saving sex preference preferences:', err)
       alert('Failed to save preferences. Please try again.')
     } finally {
       setSaving(false)
@@ -63,24 +59,24 @@ export default function FamilyPlansPreferences() {
           </svg>
           <span className="back-label">Back</span>
         </button>
-        <h1 className="preference-title">Family Plans</h1>
+        <h1 className="preference-title">Sex Preference</h1>
       </div>
 
       <div className="preference-content">
-        <p className="preference-description">Select the family planning preferences you're open to matching with</p>
-        
+        <p className="preference-description">Select the sex preferences you're interested in matching with</p>
+
         <div className="checkbox-list">
-          {FAMILY_PLANS_OPTIONS.map((plan) => (
+          {SEX_PREFERENCE_OPTIONS.map((option) => (
             <label
-              key={plan}
-              className={`checkbox-item ${selectedPlans.includes(plan) ? 'selected' : ''}`}
+              key={option}
+              className={`checkbox-item ${selectedOptions.includes(option) ? 'selected' : ''}`}
             >
               <input
                 type="checkbox"
-                checked={selectedPlans.includes(plan)}
-                onChange={() => togglePlan(plan)}
+                checked={selectedOptions.includes(option)}
+                onChange={() => toggleOption(option)}
               />
-              <span className="checkbox-label">{plan}</span>
+              <span className="checkbox-label">{option}</span>
             </label>
           ))}
         </div>

@@ -7,7 +7,7 @@ import '../Profile.css'
 
 const RELATIONSHIP_STYLE_OPTIONS = [
   'Exploring', 'Figuring it out', 'Monogamy', 
-  'Non monogamous', 'Poly', 'Prefer not to say'
+  'Non monogamous', 'Poly'
 ]
 
 export default function RelationshipStylePreferences() {

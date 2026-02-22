@@ -15,29 +15,24 @@ export default function AgeRangePreferences() {
 
   useEffect(() => {
     if (profile?.matching_preferences?.age_range) {
-      setAgeRange([
-        profile.matching_preferences.age_range.min || 18,
-        profile.matching_preferences.age_range.max || 99
-      ])
+      const savedMin = profile.matching_preferences.age_range.min || 18
+      const savedMax = profile.matching_preferences.age_range.max || 99
+      setAgeRange([savedMin, Math.max(savedMax, savedMin + 5)])
     }
   }, [profile])
 
-  useEffect(() => {
-    if (profile?.matching_preferences?.age_range) {
-      setMinAge(profile.matching_preferences.age_range.min || 18)
-      setMaxAge(profile.matching_preferences.age_range.max || 99)
-    }
-  }, [profile])
 
   const handleSave = async () => {
     if (!user?.id || saving) return
     setSaving(true)
     try {
       const profileRef = doc(db, 'profiles', user.id)
+      const safeMin = ageRange[0]
+      const safeMax = Math.max(ageRange[1], safeMin + 5)
       await updateDoc(profileRef, {
         'matching_preferences.age_range': {
-          min: ageRange[0],
-          max: ageRange[1]
+          min: safeMin,
+          max: safeMax
         },
         updated_at: new Date().toISOString()
       })

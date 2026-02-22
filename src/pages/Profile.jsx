@@ -87,7 +87,7 @@ export default function Profile() {
         <section className="profile-content">
           {/* Matching Preferences Section */}
           <div className="matching-preferences-section">
-            <h2 className="matching-preferences-heading">MATCHING PREFERENCES</h2>
+            <h2 className="matching-preferences-heading">FILTER MATCHING PREFERENCES</h2>
             <div className="matching-preferences-list">
               <Link to="/preferences/age-range" className="matching-preference-item">
                 <span className="preference-label">Age Range</span>
@@ -113,8 +113,8 @@ export default function Profile() {
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
               </Link>
-              <Link to="/preferences/connection-goals" className="matching-preference-item">
-                <span className="preference-label">Connection Goals</span>
+              <Link to="/preferences/sex-preference" className="matching-preference-item">
+                <span className="preference-label">Sex Preference</span>
                 <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>

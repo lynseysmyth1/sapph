@@ -13,7 +13,7 @@ export default function DistancePreferences() {
 
   useEffect(() => {
     if (profile?.matching_preferences?.distance) {
-      setDistance(profile.matching_preferences.distance || 50)
+      setDistance(Math.max(profile.matching_preferences.distance || 50, 3))
     }
   }, [profile])
 
@@ -60,14 +60,14 @@ export default function DistancePreferences() {
             <label className="slider-label">Maximum Distance: {distance} miles</label>
             <input
               type="range"
-              min="1"
+              min="3"
               max="100"
               value={distance}
               onChange={(e) => setDistance(parseInt(e.target.value))}
               className="distance-slider"
             />
             <div className="slider-labels">
-              <span>1 mile</span>
+              <span>3 miles</span>
               <span>100 miles</span>
             </div>
           </div>
