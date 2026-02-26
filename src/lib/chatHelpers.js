@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore'
-import { db } from './firebase'
+import { deleteUser } from 'firebase/auth'
+import { db, auth } from './firebase'
 
 /**
  * Create or get a conversation between two users
@@ -166,6 +167,27 @@ export async function updatePresence(userId, isOnline) {
     lastSeen: serverTimestamp(),
     updatedAt: serverTimestamp()
   }, { merge: true })
+}
+
+/**
+ * Permanently delete a user's account — profile doc, passes, and Firebase Auth user.
+ * Likes and conversations are left orphaned (invisible since profile is gone).
+ * Must be called while the user is still authenticated.
+ * Throws 'auth/requires-recent-login' if re-authentication is needed.
+ */
+export async function deleteAccount(userId) {
+  // 1. Delete profile document
+  await deleteDoc(doc(db, 'profiles', userId))
+
+  // 2. Delete all passes made by this user
+  const passesSnap = await getDocs(query(
+    collection(db, 'passes'),
+    where('fromUserId', '==', userId)
+  ))
+  await Promise.all(passesSnap.docs.map(d => deleteDoc(d.ref)))
+
+  // 3. Delete Firebase Auth user — must be last since auth is lost after this
+  await deleteUser(auth.currentUser)
 }
 
 /**

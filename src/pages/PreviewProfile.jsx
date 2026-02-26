@@ -1,8 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useState } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { deleteAccount } from '../lib/chatHelpers'
 import './Profile.css'
 
 function formatValue(value, fieldId) {
@@ -42,13 +41,14 @@ const displayPolitical = (val) => POLITICAL_DISPLAY[val] || val
 const ALWAYS_VISIBLE_IDS = new Set(['full_name', 'dob', 'photos', 'bio', 'conversation_starter'])
 
 export default function PreviewProfile() {
-  const { user, profile, signOut, refreshProfile } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const pathname = location.pathname
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
-  const [resetting, setResetting] = useState(false)
-  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   const handleSignOut = async () => {
     await signOut()
@@ -59,22 +59,21 @@ export default function PreviewProfile() {
     navigate('/onboarding')
   }
 
-  const handleStartOver = async () => {
-    if (!user?.id || resetting) return
-    setResetting(true)
+  const handleDeleteAccount = async () => {
+    if (!user?.id || deleting) return
+    setDeleting(true)
+    setDeleteError(null)
     try {
-      const profileRef = doc(db, 'profiles', user.id)
-      await updateDoc(profileRef, { 
-        onboarding_completed: false, 
-        photos: [], 
-        updated_at: new Date().toISOString() 
-      })
-      await refreshProfile()
-      navigate('/onboarding', { replace: true })
+      await deleteAccount(user.id)
+      await signOut()
+      navigate('/', { replace: true })
     } catch (err) {
-      console.error('Start over failed:', err)
-    } finally {
-      setResetting(false)
+      if (err.code === 'auth/requires-recent-login') {
+        setDeleteError('For security, please sign out and sign back in before deleting your account.')
+      } else {
+        setDeleteError('Something went wrong. Please try again.')
+      }
+      setDeleting(false)
     }
   }
 
@@ -372,8 +371,8 @@ export default function PreviewProfile() {
                 </svg>
                 <span>Edit Profile</span>
               </button>
-              <button onClick={handleStartOver} className="profile-action-btn start-over-btn" disabled={resetting} type="button">
-                {resetting ? 'Resetting…' : 'Start Over'}
+              <button onClick={() => setShowDeleteConfirm(true)} className="profile-action-btn start-over-btn" type="button">
+                Delete Account
               </button>
               <button onClick={handleSignOut} className="profile-action-btn signout-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -387,6 +386,33 @@ export default function PreviewProfile() {
           </div>
         </section>
       </main>
+
+      {/* Delete Account confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="delete-confirm-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div className="delete-confirm-modal" onClick={e => e.stopPropagation()}>
+            <h3>Delete your account?</h3>
+            <p>This will permanently delete your profile and all your data. This cannot be undone.</p>
+            <div className="delete-confirm-actions">
+              <button
+                className="delete-confirm-keep"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Keep account
+              </button>
+              <button
+                className="delete-confirm-delete"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Delete account'}
+              </button>
+            </div>
+            {deleteError && <p className="delete-error-msg">{deleteError}</p>}
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="bottom-nav">

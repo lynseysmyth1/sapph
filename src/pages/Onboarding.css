@@ -167,6 +167,11 @@
   background: #fff;
 }
 
+/* Bio textarea: 50% larger than default */
+.onboarding-textarea-bio {
+  min-height: 180px;
+}
+
 .char-count {
   font-size: 0.85rem;
   color: #888888;
@@ -273,25 +278,32 @@
   background: var(--sapph-orange);
 }
 
-.theme-divider .btn-next {
-  background-color: white;
-  color: var(--sapph-orange);
+/* Divider screens: Next/Finish = white button, orange arrow (overrides default orange button) */
+.theme-divider .onboarding-footer .btn-next,
+.theme-divider .step-completion-with-cta .btn-next.btn-finish {
+  background-color: white !important;
+  color: var(--sapph-orange) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.theme-divider .btn-next:hover {
-  background-color: #f9f9f9;
+.theme-divider .onboarding-footer .btn-next:hover,
+.theme-divider .step-completion-with-cta .btn-next.btn-finish:hover {
+  background-color: #f9f9f9 !important;
+  color: var(--sapph-orange) !important;
   transform: translateY(-2px);
 }
 
-.theme-divider .btn-back {
+/* Divider screens: Back button stays visible (white on orange) */
+.theme-divider .onboarding-footer .btn-back {
+  background-color: transparent;
   color: white;
-  border-color: rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
 }
 
-.theme-divider .btn-back:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.theme-divider .onboarding-footer .btn-back:hover {
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
+  border-color: rgba(255, 255, 255, 0.8);
 }
 
 .dob-feedback {

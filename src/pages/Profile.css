@@ -87,6 +87,7 @@
 .profile-photo-section {
   position: relative;
   width: 100%;
+  flex-shrink: 0;
   aspect-ratio: 3 / 4;
   background: #f5f5f5;
   touch-action: pan-y; /* Allow vertical panning for photo swipes */
@@ -616,6 +617,95 @@
 .start-over-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Delete Account confirmation modal */
+.delete-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.delete-confirm-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  max-width: 320px;
+  width: 90%;
+  text-align: center;
+}
+
+.delete-confirm-modal h3 {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--sapph-text-body);
+  margin: 0 0 0.75rem;
+}
+
+.delete-confirm-modal p {
+  font-family: 'Lato', sans-serif;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.delete-confirm-keep {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid #ddd;
+  background: transparent;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-confirm-keep:hover {
+  background: #f5f5f5;
+}
+
+.delete-confirm-delete {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #e53935;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-confirm-delete:hover:not(:disabled) {
+  background: #c62828;
+}
+
+.delete-confirm-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-error-msg {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.85rem;
+  color: #e53935;
+  margin: 0.75rem 0 0;
 }
 
 .signout-btn {

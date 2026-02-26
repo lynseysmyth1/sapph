@@ -720,7 +720,7 @@ export default function Onboarding() {
             <div className="question-item">
               <h2 className="question-label">{currentStep.label}</h2>
               {currentStep.hint && <p className="question-hint">{currentStep.hint}</p>}
-              <textarea className="onboarding-textarea" placeholder={currentStep.placeholder} maxLength={currentStep.maxLength} value={formData[currentStep.id] || ''} onChange={e => handleInputChange(currentStep.id, e.target.value)} rows={4} />
+              <textarea className={`onboarding-textarea ${currentStep.id === 'bio' ? 'onboarding-textarea-bio' : ''}`} placeholder={currentStep.placeholder} maxLength={currentStep.maxLength} value={formData[currentStep.id] || ''} onChange={e => handleInputChange(currentStep.id, e.target.value)} rows={currentStep.id === 'bio' ? 6 : 4} />
               {currentStep.maxLength && <p className="char-count">{(formData[currentStep.id] || '').length} / {currentStep.maxLength}</p>}
               {hideShowOnProfile ? <p className="always-visible-note">Always visible on your profile</p> : (
                 <div className="visibility-toggle">
