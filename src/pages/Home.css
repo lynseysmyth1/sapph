@@ -282,8 +282,9 @@
 }
 
 .profile-info-line {
-  font-family: 'Prompt', sans-serif;
-  font-size: 1rem;
+  font-family: 'Lato', sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.5;
   color: var(--sapph-text-body);
   margin: 0 0 24px;
   font-weight: 400;
@@ -325,33 +326,60 @@
   font-size: 1rem;
 }
 
-/* Minimalist Editorial Grid */
-.minimal-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px 10px;
+/* Category-style profile sections (matching Profile tab) */
+.about-me-category {
+  margin-bottom: 20px;
 }
 
-.grid-item {
+.about-me-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-subheading {
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sapph-orange);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px 0;
+}
+
+.profile-content .category-items {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+.profile-content .category-item {
+  display: flex;
+  align-items: baseline;
   gap: 4px;
 }
 
-.grid-label {
+.profile-content .category-label-inline {
   font-family: 'Prompt', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 400;
   color: var(--sapph-orange);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-.grid-value {
+.profile-content .category-value {
   font-family: 'Lato', sans-serif;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--sapph-text-body);
   font-weight: 400;
+  line-height: 1.5;
+}
+
+.profile-content .category-item:not(:last-child)::after {
+  content: ' •';
+  color: rgba(240, 107, 74, 0.6);
+  margin: 0 8px;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.1rem;
 }
 
 /* Interests/Pets Grid - Deprecated for minimalist style, but kept for other uses if needed */

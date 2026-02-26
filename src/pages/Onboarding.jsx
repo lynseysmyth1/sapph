@@ -152,10 +152,8 @@ export default function Onboarding() {
       setFooterBottom(keyboardHeight > 150 ? keyboardHeight : 0);
     };
     vv.addEventListener('resize', onViewportChange);
-    vv.addEventListener('scroll', onViewportChange);
     return () => {
       vv.removeEventListener('resize', onViewportChange);
-      vv.removeEventListener('scroll', onViewportChange);
     };
   }, []);
 

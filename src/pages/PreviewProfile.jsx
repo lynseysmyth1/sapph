@@ -49,9 +49,6 @@ export default function PreviewProfile() {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
   const [resetting, setResetting] = useState(false)
   
-  // Swipe gesture tracking for photos
-  const [touchStart, setTouchStart] = useState(null)
-  const [touchEnd, setTouchEnd] = useState(null)
 
   const handleSignOut = async () => {
     await signOut()
@@ -105,13 +102,15 @@ export default function PreviewProfile() {
 
   const age = profile.dob ? formatValue(profile.dob, 'dob') : null
   
-  // Construct info line: 30 | She/Her | Non binary | Queer | Femme
+  // Construct info line: 30 | She/Her | Non binary | Queer | Femme | 5'3" | London
   const infoParts = [
     showField('dob') && age,
     showField('pronouns') && filterPreferNotToSay(profile.pronouns).length > 0 && filterPreferNotToSay(profile.pronouns).join('/'),
     showField('gender_identity') && profile.gender_identity,
     showField('sexual_identity') && profile.sexual_identity,
-    showField('gender_expression') && profile.gender_expression
+    showField('gender_expression') && profile.gender_expression,
+    showField('height') && profile.height,
+    showField('location') && profile.location
   ].filter(Boolean)
 
   const infoLine = infoParts.join(' | ')
@@ -123,47 +122,6 @@ export default function PreviewProfile() {
   ].filter(Boolean)
   
   const lookingForLine = lookingForParts.join(' | ')
-
-  // Touch handlers for vertical swipe (photo navigation)
-  const minSwipeDistance = 50
-
-  const onTouchStart = (e) => {
-    setTouchEnd(null)
-    setTouchStart({
-      y: e.targetTouches[0].clientY
-    })
-  }
-
-  const onTouchMove = (e) => {
-    // Allow default scrolling behavior
-  }
-
-  const onTouchEnd = (e) => {
-    if (!touchStart || !touchEnd) return
-
-    const distanceY = touchEnd.y - touchStart.y
-    const isUpSwipe = distanceY < -minSwipeDistance
-    const isDownSwipe = distanceY > minSwipeDistance
-
-    const photos = profile?.photos?.filter(url => url.startsWith('http')) || []
-    if (photos.length > 1) {
-      if (isUpSwipe && activePhotoIndex < photos.length - 1) {
-        setActivePhotoIndex(prev => prev + 1)
-      } else if (isDownSwipe && activePhotoIndex > 0) {
-        setActivePhotoIndex(prev => prev - 1)
-      }
-    }
-
-    setTouchStart(null)
-    setTouchEnd(null)
-  }
-
-  const onTouchEndCapture = (e) => {
-    if (!touchStart) return
-    setTouchEnd({
-      y: e.changedTouches[0].clientY
-    })
-  }
 
   return (
     <div className="profile-container">
@@ -185,13 +143,7 @@ export default function PreviewProfile() {
       <main className="profile-card">
         {/* Photo Section – show photos or placeholder when none */}
         {showField('photos') && (
-          <section 
-            className="profile-photo-section"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onTouchEndCapture={onTouchEndCapture}
-          >
+          <section className="profile-photo-section">
             {profile.photos?.length > 0 ? (
               <>
                 <div className="main-photo-container">
@@ -199,6 +151,18 @@ export default function PreviewProfile() {
                     src={profile.photos.filter(url => url.startsWith('http'))[activePhotoIndex] || profile.photos.filter(url => url.startsWith('http'))[0]}
                     alt={profile.full_name}
                     className="main-photo"
+                    onClick={(e) => {
+                      const photos = profile.photos.filter(url => url.startsWith('http'))
+                      if (photos.length <= 1) return
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const mid = rect.left + rect.width / 2
+                      if (e.clientX < mid) {
+                        setActivePhotoIndex(prev => Math.max(0, prev - 1))
+                      } else {
+                        setActivePhotoIndex(prev => Math.min(photos.length - 1, prev + 1))
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
                   />
                   <div className="photo-indicators">
                     {profile.photos.filter(url => url.startsWith('http')).map((_, i) => (
@@ -270,29 +234,29 @@ export default function PreviewProfile() {
                 (showField('hometown') && profile.hometown) || 
                 (showField('pets') && profile.pets && profile.pets.length > 0)) && (
                 <div className="about-me-category">
-                  <h4 className="category-label">WORK & LIFE</h4>
+                  <h4 className="section-header">WORK & LIFE</h4>
                   <div className="category-items">
                     {showField('job_title') && profile.job_title && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Job</span>
+                        <span className="category-label-inline">Job</span>
                         <span className="category-value">{profile.job_title}</span>
                       </span>
                     )}
                     {showField('location') && profile.location && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Lives in</span>
+                        <span className="category-label-inline">Lives in</span>
                         <span className="category-value">{profile.location}</span>
                       </span>
                     )}
                     {showField('hometown') && profile.hometown && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">From</span>
+                        <span className="category-label-inline">From</span>
                         <span className="category-value">{profile.hometown}</span>
                       </span>
                     )}
                     {showField('pets') && profile.pets && profile.pets.length > 0 && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Pets</span>
+                        <span className="category-label-inline">Pets</span>
                         <span className="category-value">{(Array.isArray(profile.pets) ? profile.pets : [profile.pets]).join(', ')}</span>
                       </span>
                     )}
@@ -306,17 +270,17 @@ export default function PreviewProfile() {
                 (showField('children') && profile.children) || 
                 (showField('height') && profile.height)) && (
                 <div className="about-me-category">
-                  <h4 className="category-label">IDENTITY</h4>
+                  <h4 className="section-header">IDENTITY</h4>
                   <div className="category-items">
                     {showField('height') && profile.height && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Height</span>
+                        <span className="category-label-inline">Height</span>
                         <span className="category-value">{profile.height}</span>
                       </span>
                     )}
                     {showField('children') && profile.children && profile.children !== 'Prefer not to say' && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Family plans</span>
+                        <span className="category-label-inline">Family plans</span>
                         <span className="category-value">{profile.children}</span>
                       </span>
                     )}
@@ -324,13 +288,13 @@ export default function PreviewProfile() {
                       && profile.political_alignment !== 'Prefer not to say'
                       && profile.political_alignment !== 'Prefer not to share' && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Politics</span>
+                        <span className="category-label-inline">Politics</span>
                         <span className="category-value">{displayPolitical(profile.political_alignment)}</span>
                       </span>
                     )}
                     {showField('zodiac_sign') && profile.zodiac_sign && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Zodiac</span>
+                        <span className="category-label-inline">Zodiac</span>
                         <span className="category-value">{profile.zodiac_sign}</span>
                       </span>
                     )}
@@ -348,25 +312,25 @@ export default function PreviewProfile() {
                   <div className="category-items">
                     {showField('smoking') && profile.smoking && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Smoke</span>
+                        <span className="category-label-inline">Smoke</span>
                         <span className="category-value">{profile.smoking}</span>
                       </span>
                     )}
                     {showField('drinking') && profile.drinking && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Drink</span>
+                        <span className="category-label-inline">Drink</span>
                         <span className="category-value">{profile.drinking}</span>
                       </span>
                     )}
                     {showField('marijuana') && profile.marijuana && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Weed</span>
+                        <span className="category-label-inline">Weed</span>
                         <span className="category-value">{profile.marijuana}</span>
                       </span>
                     )}
                     {showField('drugs') && profile.drugs && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Other drugs</span>
+                        <span className="category-label-inline">Other drugs</span>
                         <span className="category-value">{profile.drugs}</span>
                       </span>
                     )}
@@ -384,13 +348,13 @@ export default function PreviewProfile() {
                   <div className="category-items">
                     {showField('sex_preferences') && filterPreferNotToSay(profile.sex_preferences).length > 0 && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Sex preference</span>
+                        <span className="category-label-inline">Sex preference</span>
                         <span className="category-value">{filterPreferNotToSay(profile.sex_preferences).join(', ')}</span>
                       </span>
                     )}
                     {showField('kinks') && filterPreferNotToSay(profile.kinks).length > 0 && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Kinks</span>
+                        <span className="category-label-inline">Kinks</span>
                         <span className="category-value">{filterPreferNotToSay(profile.kinks).join(', ')}</span>
                       </span>
                     )}
