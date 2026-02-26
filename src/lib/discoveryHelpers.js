@@ -2,6 +2,20 @@ import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/
 import { db } from './firebase'
 
 /**
+ * Haversine formula — returns distance in miles between two lat/lng coordinates.
+ */
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const R = 3958.8 // Earth radius in miles
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+/**
  * Calculate age in years from a dob string (ISO or YYYY-MM-DD).
  * Returns null if unparseable.
  */
@@ -23,13 +37,16 @@ function calcAge(dob) {
  * Returns true if the candidate profile passes all active matching preference filters.
  * A filter is only applied if the current user has set a non-empty value for it.
  * If a candidate is missing the relevant field, they are included (benefit of the doubt).
+ * @param {Object} candidate - candidate profile data
+ * @param {Object|null} prefs - current user's matching_preferences
+ * @param {Object|null} currentUserCoords - { latitude, longitude } of the current user
  */
-function passesFilters(candidate, prefs) {
+function passesFilters(candidate, prefs, currentUserCoords) {
   if (!prefs) return true
 
-  // Age range
+  // Age range — only filter if user narrowed from the defaults (18–99)
   const ageRange = prefs.age_range
-  if (ageRange && (ageRange.min != null || ageRange.max != null)) {
+  if (ageRange && (ageRange.min > 18 || ageRange.max < 99)) {
     const age = calcAge(candidate.dob)
     if (age !== null) {
       if (ageRange.min != null && age < ageRange.min) return false
@@ -37,32 +54,67 @@ function passesFilters(candidate, prefs) {
     }
   }
 
-  // Gender identity
+  // Strip "Prefer not to say/share" from arrays before overlap checks.
+  // Applied to both candidate values and saved preferences — old saved prefs may contain these values.
+  const strip = (arr) => (arr || []).filter(v => v !== 'Prefer not to say' && v !== 'Prefer not to share')
+
+  // Gender identity — single string field; skip filter if candidate said "Prefer not to say"
   if (prefs.gender?.length > 0 && candidate.gender_identity) {
-    if (!prefs.gender.includes(candidate.gender_identity)) return false
+    if (candidate.gender_identity !== 'Prefer not to say') {
+      if (!prefs.gender.includes(candidate.gender_identity)) return false
+    }
   }
 
   // Relationship goals — match against candidate's connection_goals array
-  if (prefs.relationship_goals?.length > 0 && candidate.connection_goals?.length > 0) {
-    const overlaps = candidate.connection_goals.some(g => prefs.relationship_goals.includes(g))
-    if (!overlaps) return false
+  const activeRelGoals = strip(prefs.relationship_goals)
+  if (activeRelGoals.length > 0) {
+    const candidateGoals = strip(candidate.connection_goals)
+    if (candidateGoals.length > 0) {
+      if (!candidateGoals.some(g => activeRelGoals.includes(g))) return false
+    }
   }
 
   // Relationship style
-  if (prefs.relationship_style?.length > 0 && candidate.relationship_style?.length > 0) {
-    const overlaps = candidate.relationship_style.some(s => prefs.relationship_style.includes(s))
-    if (!overlaps) return false
+  const activeRelStyles = strip(prefs.relationship_style)
+  if (activeRelStyles.length > 0) {
+    const candidateStyles = strip(candidate.relationship_style)
+    if (candidateStyles.length > 0) {
+      if (!candidateStyles.some(s => activeRelStyles.includes(s))) return false
+    }
   }
 
   // Sex preferences
-  if (prefs.sex_preferences?.length > 0 && candidate.sex_preferences?.length > 0) {
-    const overlaps = candidate.sex_preferences.some(s => prefs.sex_preferences.includes(s))
-    if (!overlaps) return false
+  const activeSexPrefs = strip(prefs.sex_preferences)
+  if (activeSexPrefs.length > 0) {
+    const candidateSexPrefs = strip(candidate.sex_preferences)
+    if (candidateSexPrefs.length > 0) {
+      if (!candidateSexPrefs.some(s => activeSexPrefs.includes(s))) return false
+    }
   }
 
   // Family plans — match against candidate's children (string) field
-  if (prefs.family_plans?.length > 0 && candidate.children) {
-    if (!prefs.family_plans.includes(candidate.children)) return false
+  const activeFamilyPlans = strip(prefs.family_plans)
+  if (activeFamilyPlans.length > 0 && candidate.children) {
+    if (candidate.children !== 'Prefer not to say') {
+      if (!activeFamilyPlans.includes(candidate.children)) return false
+    }
+  }
+
+  // Distance — only applies when current user AND candidate both have stored coordinates
+  if (
+    prefs.distance != null &&
+    currentUserCoords?.latitude != null &&
+    currentUserCoords?.longitude != null &&
+    candidate.latitude != null &&
+    candidate.longitude != null
+  ) {
+    const miles = haversineDistance(
+      currentUserCoords.latitude,
+      currentUserCoords.longitude,
+      candidate.latitude,
+      candidate.longitude
+    )
+    if (miles > prefs.distance) return false
   }
 
   return true
@@ -76,7 +128,7 @@ function passesFilters(candidate, prefs) {
  *   matchingPreferences: The current user's matching_preferences object for filtering
  */
 export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], maxResults = 20, options = {}) {
-  const { includePassed = false, matchingPreferences = null } = options
+  const { includePassed = false, matchingPreferences = null, currentUserCoords = null } = options
 
   try {
     // Fetch already-liked user IDs from Firestore (always exclude)
@@ -131,7 +183,7 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
         continue
       }
 
-      if (!passesFilters(profileData, matchingPreferences)) {
+      if (!passesFilters(profileData, matchingPreferences, currentUserCoords)) {
         excludedCount++
         continue
       }

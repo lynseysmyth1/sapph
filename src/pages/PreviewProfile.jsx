@@ -27,6 +27,17 @@ function formatValue(value, fieldId) {
 const filterPreferNotToSay = (arr) =>
   (arr || []).filter(v => v !== 'Prefer not to say' && v !== 'Prefer not to share')
 
+// Map legacy political alignment values to simplified display labels
+const POLITICAL_DISPLAY = {
+  'Progressive': 'Left',
+  'Liberal': 'Left',
+  'Center left': 'Left',
+  'Centrist': 'Center',
+  'Center right': 'Right',
+  'Conservative': 'Right',
+}
+const displayPolitical = (val) => POLITICAL_DISPLAY[val] || val
+
 // Fields that are always shown on profile (no checkbox in onboarding)
 const ALWAYS_VISIBLE_IDS = new Set(['full_name', 'dob', 'photos', 'bio', 'conversation_starter'])
 
@@ -305,14 +316,16 @@ export default function PreviewProfile() {
                     )}
                     {showField('children') && profile.children && profile.children !== 'Prefer not to say' && (
                       <span className="category-item">
-                        <span className="category-label sentence-case">Kids</span>
+                        <span className="category-label sentence-case">Family plans</span>
                         <span className="category-value">{profile.children}</span>
                       </span>
                     )}
-                    {showField('political_alignment') && profile.political_alignment && (
+                    {showField('political_alignment') && profile.political_alignment
+                      && profile.political_alignment !== 'Prefer not to say'
+                      && profile.political_alignment !== 'Prefer not to share' && (
                       <span className="category-item">
                         <span className="category-label sentence-case">Politics</span>
-                        <span className="category-value">{profile.political_alignment}</span>
+                        <span className="category-value">{displayPolitical(profile.political_alignment)}</span>
                       </span>
                     )}
                     {showField('zodiac_sign') && profile.zodiac_sign && (

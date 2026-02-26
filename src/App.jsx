@@ -22,6 +22,7 @@ const Likes = lazy(() => import('./pages/Likes'))
 const Messages = lazy(() => import('./pages/Messages'))
 const Chat = lazy(() => import('./pages/Chat'))
 const TestFirebase = lazy(() => import('./pages/TestFirebase'))
+const LocationPermission = lazy(() => import('./pages/LocationPermission'))
 
 function ProtectedRoute({ children }) {
   const { user, authLoading } = useAuth()
@@ -50,6 +51,11 @@ function SplashOrRedirect() {
     return <Navigate to="/onboarding" replace />
   }
 
+  // Profile complete but location permission not yet requested → show pre-prompt screen
+  if (profile.location_permission_asked !== true) {
+    return <Navigate to="/location-permission" replace />
+  }
+
   // Profile complete → home
   return <Navigate to="/home" replace />
 }
@@ -64,7 +70,7 @@ function PageLoader() {
   return (
     <div className="app-loading">
       <div className="app-loading-brand">
-        <div className="app-loading-logo">S</div>
+        <div className="app-loading-logo"><img src="/logos/logo-orange.png" alt="Sapph" /></div>
         <div className="app-loading-dots">
           <span></span>
           <span></span>
@@ -88,6 +94,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Onboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/location-permission"
+        element={
+          <ProtectedRoute>
+            <LocationPermission />
           </ProtectedRoute>
         }
       />

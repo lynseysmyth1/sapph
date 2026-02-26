@@ -14,7 +14,16 @@ export default function Splash() {
     setTimeout(() => setShowEmailForm(true), 0)
   }
 
-  if (authLoading) return <div className="app-loading">Loading…</div>
+  if (authLoading) return (
+    <div className="app-loading">
+      <div className="app-loading-brand">
+        <div className="app-loading-logo"><img src="/logos/logo-orange.png" alt="Sapph" /></div>
+        <div className="app-loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="splash">

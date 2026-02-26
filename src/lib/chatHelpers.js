@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, getDocs, addDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, getDocs, addDoc, deleteDoc } from 'firebase/firestore'
 import { db } from './firebase'
 
 /**
@@ -122,6 +122,18 @@ export async function recordLike(fromUserId, toUserId, likeType) {
   }
 
   return { likeId: likeRef.id, isMatch: false, conversationId: null }
+}
+
+/**
+ * Delete all passes made by fromUserId, used when "See All Profiles Again" is pressed
+ * so the reset persists across sessions.
+ */
+export async function clearPasses(fromUserId) {
+  const snap = await getDocs(query(
+    collection(db, 'passes'),
+    where('fromUserId', '==', fromUserId)
+  ))
+  await Promise.all(snap.docs.map(d => deleteDoc(d.ref)))
 }
 
 /**

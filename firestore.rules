@@ -43,11 +43,13 @@ service cloud.firestore {
       }
     }
     
-    // Passes - users can create their own passes and read passes they created
+    // Passes - users can create, read, and delete their own passes
     match /passes/{passId} {
       allow create: if request.auth != null
         && request.auth.uid == request.resource.data.fromUserId;
       allow read: if request.auth != null
+        && request.auth.uid == resource.data.fromUserId;
+      allow delete: if request.auth != null
         && request.auth.uid == resource.data.fromUserId;
     }
 

@@ -4,6 +4,8 @@ import { BrowserRouter, HashRouter } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
+import { DiscoveryProvider } from './contexts/DiscoveryContext.jsx'
+import { LocationProvider } from './contexts/LocationContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 
@@ -41,7 +43,11 @@ function initializeApp() {
         <ErrorBoundary>
           <Router {...routerProps}>
             <AuthProvider>
-              <App />
+              <LocationProvider>
+                <DiscoveryProvider>
+                  <App />
+                </DiscoveryProvider>
+              </LocationProvider>
             </AuthProvider>
           </Router>
         </ErrorBoundary>

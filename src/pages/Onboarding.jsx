@@ -34,37 +34,40 @@ function SortablePhotoItem({ id, url, index, onRemove }) {
 
 // Full onboarding steps – types: intro, completion, text, textarea, radio, checkbox, photos, group
 const ONBOARDING_STEPS = [
-  { type: 'intro', id: 'intro_details', body: "Let's get started with some details about you" },
+  // ── Section 1: About you ──────────────────────────────────────────────────
+  { type: 'intro', id: 'intro_details', body: "Tell us a bit about who you are.", subtitle: "The more you share, the better we can create matches that actually make sense." },
   { type: 'text', id: 'name_dob', label: "What's your name?", sublabel: "And date of birth", alsoCollectDob: true, required: true },
-  { type: 'checkbox', id: 'pronouns', label: "What are your pronouns?", required: true, options: ['She', 'Her', 'They', 'Them', 'He', 'Him', 'Prefer not to say', 'Other'] },
-  { type: 'radio', id: 'gender_identity', label: 'How do you identify?', required: true, options: ['Agender', 'Androgynous', 'Bigender', 'Gender fluid', 'Gender non conforming', 'Gender queer', 'Intersex', 'Non binary', 'Pangender', 'Trans person', 'Trans woman', 'Transfeminine', 'Transmasculine', 'Trans non-binary', 'Woman'] },
-  { type: 'radio', id: 'gender_expression', label: "What's your gender expression?", required: true, options: ['Androgynous / Andro', 'Butch', 'Chapstick', 'Femme', 'Futch', 'Gender non conforming', 'High femme', 'Masc', 'Masc-of-centre', 'Queer femme', 'Queer masc', 'Sapphic', 'Soft butch', 'Soft Masc', 'Stem', 'Tomboy'] },
-  { type: 'radio', id: 'sexual_identity', label: 'How do you identify sexually?', required: true, options: ['Asexual', 'Bisexual', 'Demisexual', 'Gay', 'Lesbian', 'Pansexual', 'Queer', 'Questioning', 'Other'] },
-  { type: 'text', id: 'height', label: "What's your height?", placeholder: "e.g. 5'6\"", required: true },
-  { type: 'text', id: 'location', label: 'Where do you live?', placeholder: 'City and area', required: true },
-  { type: 'text', id: 'hometown', label: "Where's your home town?", placeholder: 'City, Country', required: true },
-  { type: 'radio', id: 'children', label: 'Do you have children?', required: true, options: ['Childfree, not having children', 'Child free, dating people with children', 'Have children', "Have children, don't want more", 'Have children, open to more', 'Want children', 'Prefer not to say'] },
-  { type: 'text', id: 'job_title', label: "What's your job title?", placeholder: 'What do you do?', required: true },
-  { type: 'radio', id: 'political_alignment', label: 'What is your political alignment?', required: true, options: ['Progressive', 'Liberal', 'Center left', 'Centrist', 'Center right', 'Conservative', 'Not political'] },
-  { type: 'intro', id: 'intro_profile', body: "Now let's build out your profile details" },
-  { type: 'photos', id: 'photos', label: "Add up to 6 photos — optional (headshot first recommended)", hint: 'Minimum 4 pictures required', min: 4, max: 6, required: true },
-  { type: 'textarea', id: 'bio', label: "Next we'd love you to tell people a little bit more about yourself with a short bio.", hint: 'Let people know a little about you, what you love in life and how you spend your time.', placeholder: 'Write your bio...', maxLength: 500, required: true },
-  { type: 'textarea', id: 'conversation_starter', label: 'Now we have our conversation starter', hint: "Sometimes it's hard to know how to kick start the first chat — this gives the other person some hints.", placeholder: 'e.g. Ask me about my favourite hike...', maxLength: 200, required: false },
-  { type: 'checkbox', id: 'connection_goals', label: 'What are your connection goals?', required: true, options: ['Friends', 'Hookup', 'Life partner', 'Long term', 'Long term, open to short', 'Relationship', 'Short term', 'Short term, open to serious'] },
-  { type: 'checkbox', id: 'relationship_style', label: 'What style of relationship are you looking for?', required: true, options: ['Exploring', 'Figuring it out', 'Monogamy', 'Non monogamous', 'Poly', 'Prefer not to say'] },
+  { type: 'checkbox', id: 'pronouns', label: "What are your pronouns?", required: false, options: ['She', 'Her', 'They', 'Them', 'He', 'Him', 'Prefer not to say', 'Other'] },
+  { type: 'radio', id: 'gender_identity', label: 'How do you identify?', required: false, options: ['Agender', 'Androgynous', 'Bigender', 'Gender fluid', 'Gender non conforming', 'Gender queer', 'Intersex', 'Non binary', 'Pangender', 'Trans person', 'Trans woman', 'Transfeminine', 'Transmasculine', 'Trans non-binary', 'Woman'] },
+  { type: 'radio', id: 'gender_expression', label: "What's your gender expression?", required: false, options: ['Androgynous / Andro', 'Butch', 'Chapstick', 'Femme', 'Futch', 'Gender non conforming', 'High femme', 'Masc', 'Masc-of-centre', 'Queer femme', 'Queer masc', 'Sapphic', 'Soft butch', 'Soft Masc', 'Stem', 'Tomboy'] },
+  { type: 'radio', id: 'sexual_identity', label: 'How do you identify sexually?', required: false, options: ['Asexual', 'Bisexual', 'Demisexual', 'Gay', 'Lesbian', 'Pansexual', 'Queer', 'Questioning', 'Other'] },
+  { type: 'text', id: 'height', label: "What's your height?", placeholder: "e.g. 5'6\"", required: false },
+  { type: 'text', id: 'location', label: 'Where do you live?', placeholder: 'City and area', required: false },
+  { type: 'text', id: 'hometown', label: "Where's your home town?", placeholder: 'Country or city', required: false },
+  { type: 'radio', id: 'children', label: 'What are your family plans?', required: false, options: ['Childfree, not having children', 'Child free, dating people with children', 'Have children', "Have children, don't want more", 'Have children, open to more', 'Want children', 'Prefer not to say'] },
+  { type: 'text', id: 'job_title', label: "What's your job title?", placeholder: 'What do you do?', required: false },
+  { type: 'radio', id: 'political_alignment', label: 'What is your political alignment?', required: false, options: ['Left', 'Center', 'Right', 'Not political'] },
   { type: 'group', id: 'vices', fields: [
     { type: 'heading', label: 'Tell us a little about any vices' },
-    { id: 'smoking', label: 'Smoking', type: 'radio', required: true, options: ['No', 'Sometimes', 'Vape', 'Yes'] },
-    { id: 'drinking', label: 'Drinking', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
-    { id: 'marijuana', label: 'Weed', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
-    { id: 'drugs', label: 'Other drugs', type: 'radio', required: true, options: ['No', 'Sometimes', 'Yes'] },
+    { id: 'smoking', label: 'Smoking', type: 'radio', required: false, options: ['No', 'Sometimes', 'Vape', 'Yes'] },
+    { id: 'drinking', label: 'Drinking', type: 'radio', required: false, options: ['No', 'Sometimes', 'Yes'] },
+    { id: 'marijuana', label: 'Weed', type: 'radio', required: false, options: ['No', 'Sometimes', 'Yes'] },
+    { id: 'drugs', label: 'Other drugs', type: 'radio', required: false, options: ['No', 'Sometimes', 'Yes'] },
   ]},
-  { type: 'checkbox', id: 'pets', label: "Pets are an important part of our lives — we'd love to know if you have any", required: true, options: ['Birds', 'Cat', 'Dog', 'Fish', 'Reptile', 'Small animal', 'No pets'] },
-  { type: 'radio', id: 'zodiac_sign', label: "Finally we'd love to know what zodiac sign you are", hint: "We all know this is key in any queer relationship ✨", required: true, options: ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] },
+  { type: 'checkbox', id: 'pets', label: "Pets are an important part of our lives — we'd love to know if you have any", required: false, options: ['Birds', 'Cat', 'Dog', 'Fish', 'Reptile', 'Small animal', 'No pets'] },
+  { type: 'radio', id: 'zodiac_sign', label: "Finally we'd love to know what zodiac sign you are", hint: "For the astrology girls, gays & theys ✨", required: false, options: ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] },
+  // ── Section 2: Your profile ───────────────────────────────────────────────
+  { type: 'intro', id: 'intro_profile', body: "Let's make you visible.", subtitle: "Tell people a bit about you, what you're looking for and share a few great photos." },
+  { type: 'checkbox', id: 'connection_goals', label: 'What are your connection goals?', required: true, options: ['Friends', 'Hookup', 'Life partner', 'Long term', 'Long term, open to short', 'Relationship', 'Short term', 'Short term, open to serious'] },
+  { type: 'photos', id: 'photos', label: "Add up to 6 photos — optional (headshot first recommended)", hint: 'Minimum 4 pictures required', min: 4, max: 6, required: true },
+  { type: 'textarea', id: 'bio', label: "Next we'd love you to tell people a little bit more about yourself with a short bio.", hint: 'Let people know a little about you, what you love in life and how you spend your time.', placeholder: 'Write your bio...', maxLength: 500, required: true },
+  { type: 'textarea', id: 'conversation_starter', label: 'Now we have our conversation starter', hint: "Sometimes it's hard to know how to kick start the first chat — this gives the other person some hints.", placeholder: 'e.g. Ask me about my favourite hike...', maxLength: 200, required: true },
+  { type: 'checkbox', id: 'relationship_style', label: 'What style of relationship are you looking for?', required: false, options: ['Exploring', 'Figuring it out', 'Monogamy', 'Non monogamous', 'Poly', 'Prefer not to say'] },
+  // ── Section 3: Intimate questions ────────────────────────────────────────
   { type: 'intro', id: 'intro_intimate', body: "To finish, a couple of more intimate questions", note: "(remember you can always hide these answers on your profile or skip them)" },
   { type: 'checkbox', id: 'sex_preferences', label: 'What is your sexual preference?', required: false, options: ['Bottom', 'Pillow princess', 'Power bottom', 'Power top', 'Service top', 'Stone top', 'Switch', 'Top', 'Prefer not to share'] },
   { type: 'checkbox', id: 'kinks', label: 'Do you have any kink preferences?', required: false, options: ['BDSM', 'Being dominant', 'Being watched', 'Being submissive', 'Bondage', 'Group dynamics', 'Role play', 'Toys', 'Watching', 'Prefer not to share'] },
-  { type: 'completion', id: 'done', body: "You're all set, happy matching!", note: null },
+  { type: 'completion', id: 'done', body: "You're all set!", subtitle: "Your profile is live — go find your people.", note: null },
 ];
 
 const UPLOAD_TIMEOUT_MS = 60000;   // 60s for photo uploads
@@ -145,7 +148,8 @@ export default function Onboarding() {
     if (!vv) return;
     const onViewportChange = () => {
       const keyboardHeight = window.innerHeight - vv.height;
-      setFooterBottom(Math.max(0, keyboardHeight));
+      // Only treat as keyboard if the shift is significant — filters out safe-area/chrome discrepancies
+      setFooterBottom(keyboardHeight > 150 ? keyboardHeight : 0);
     };
     vv.addEventListener('resize', onViewportChange);
     vv.addEventListener('scroll', onViewportChange);
@@ -156,19 +160,38 @@ export default function Onboarding() {
   }, []);
 
   function getStepLabel() {
-    // Show progress across all non-intro / non-completion steps
-    const contentSteps = ONBOARDING_STEPS.filter(
-      (s) => s.type !== 'intro' && s.type !== 'completion'
-    );
-    const totalSteps = contentSteps.length;
     if (currentStep.type === 'intro' || currentStep.type === 'completion') return null;
 
-    const idxInContent = contentSteps.findIndex((s) => s.id === currentStep.id);
-    const stepNumber = idxInContent >= 0 ? idxInContent + 1 : currentStepIndex + 1;
+    // Find the most recent intro before the current step to determine section name and start
+    let sectionName = 'About you';
+    let sectionStart = 0;
+    for (let i = currentStepIndex - 1; i >= 0; i--) {
+      if (ONBOARDING_STEPS[i].type === 'intro') {
+        const body = ONBOARDING_STEPS[i].body;
+        if (body.startsWith("Let's make you visible")) sectionName = 'Your profile';
+        else if (body.startsWith("To finish")) sectionName = 'Intimate questions';
+        else sectionName = 'About you';
+        sectionStart = i + 1;
+        break;
+      }
+    }
+
+    // Find the next intro/completion to determine section end
+    let sectionEnd = ONBOARDING_STEPS.length;
+    for (let i = currentStepIndex + 1; i < ONBOARDING_STEPS.length; i++) {
+      if (ONBOARDING_STEPS[i].type === 'intro' || ONBOARDING_STEPS[i].type === 'completion') {
+        sectionEnd = i;
+        break;
+      }
+    }
+
+    const sectionSteps = ONBOARDING_STEPS.slice(sectionStart, sectionEnd)
+      .filter(s => s.type !== 'intro' && s.type !== 'completion');
+    const posInSection = sectionSteps.findIndex(s => s.id === currentStep.id) + 1;
 
     return {
-      title: 'About you',
-      step: `Step ${stepNumber} of ${totalSteps}`,
+      title: sectionName,
+      step: `Step ${posInSection} of ${sectionSteps.length}`,
     };
   }
   const stepInfo = getStepLabel();
@@ -284,6 +307,22 @@ export default function Onboarding() {
       setCurrentStepIndex(i => i - 1);
       setError(null);
       window.scrollTo(0, 0);
+    }
+  };
+
+  const MANDATORY_STEP_IDS = new Set(['name_dob', 'photos', 'bio', 'conversation_starter']);
+
+  const isSkippable = !MANDATORY_STEP_IDS.has(currentStep.id)
+    && currentStep.type !== 'intro'
+    && currentStep.type !== 'completion';
+
+  const handleSkip = () => {
+    setError(null);
+    if (!isLastStep) {
+      setCurrentStepIndex(i => i + 1);
+      window.scrollTo(0, 0);
+    } else {
+      handleSubmit();
     }
   };
 
@@ -545,6 +584,11 @@ export default function Onboarding() {
       <header className="onboarding-header">
         <div className="header-inner">
           {stepInfo && <h1 className="section-title">{stepInfo.title} <span className="section-progress">{stepInfo.step}</span></h1>}
+          {isSkippable && (
+            <button type="button" className="btn-skip-step" onClick={handleSkip} disabled={loading}>
+              Skip &rsaquo;
+            </button>
+          )}
         </div>
       </header>
       <div className="onboarding-container">
@@ -552,6 +596,7 @@ export default function Onboarding() {
           {currentStep.type === 'intro' && (
             <div className="step-intro-divider">
               <p className="step-intro-body">{currentStep.body}</p>
+              {currentStep.subtitle && <p className="step-intro-subtitle">{currentStep.subtitle}</p>}
               {currentStep.note && <p className="step-intro-note">{currentStep.note}</p>}
             </div>
           )}
@@ -559,6 +604,7 @@ export default function Onboarding() {
           {currentStep.type === 'completion' && (
             <div className="step-intro-divider step-completion-with-cta">
               <p className="step-intro-body">{currentStep.body}</p>
+              {currentStep.subtitle && <p className="step-intro-subtitle">{currentStep.subtitle}</p>}
               {currentStep.note && <p className="step-intro-note">{currentStep.note}</p>}
               <button type="button" className="btn-next btn-finish completion-cta" onClick={handleNext} disabled={loading}>
                 {loading ? 'Saving…' : 'Finish'}
@@ -569,7 +615,7 @@ export default function Onboarding() {
           {currentStep.type === 'text' && currentStep.alsoCollectDob && (
             <div className="question-item">
               <h2 className="question-label">{currentStep.label}</h2>
-              <input type="text" className="onboarding-input" placeholder="Your name" value={formData.full_name || ''} onChange={e => handleInputChange('full_name', e.target.value)} autoFocus />
+              <input type="text" className="onboarding-input" placeholder="Your name" value={formData.full_name || ''} onChange={e => handleInputChange('full_name', e.target.value)} />
               <h3 className="question-sublabel">{currentStep.sublabel}</h3>
               <input type="date" className="onboarding-input" value={formData.dob || ''} onChange={e => handleInputChange('dob', e.target.value)} />
               {formData.dob && getAgeFromDob(formData.dob) != null && <p className="dob-feedback">You're <strong>{getAgeFromDob(formData.dob)} years old</strong></p>}
@@ -625,7 +671,7 @@ export default function Onboarding() {
           {currentStep.type === 'text' && !currentStep.alsoCollectDob && currentStep.id !== 'height' && (
             <div className="question-item">
               <h2 className="question-label">{currentStep.label}</h2>
-              <input type="text" className="onboarding-input" placeholder={currentStep.placeholder} value={formData[currentStep.id] || ''} onChange={e => handleInputChange(currentStep.id, e.target.value)} autoFocus />
+              <input type="text" className="onboarding-input" placeholder={currentStep.placeholder} value={formData[currentStep.id] || ''} onChange={e => handleInputChange(currentStep.id, e.target.value)} />
               <div className="visibility-toggle">
                 <label className="show-on-profile-checkbox">
                   <input type="checkbox" checked={visibilityData[currentStep.id] !== false} onChange={e => handleVisibilityChange(currentStep.id, e.target.checked)} />
@@ -774,8 +820,8 @@ export default function Onboarding() {
             className="onboarding-footer"
             style={footerBottom > 0 ? { bottom: footerBottom } : undefined}
           >
-            {showBackButton && <button type="button" className="btn-back" onClick={handleBack} disabled={loading}>Back</button>}
-            <button type="button" className="btn-next" onClick={handleNext} disabled={loading}>Next</button>
+            {showBackButton && <button type="button" className="btn-back" onClick={handleBack} disabled={loading}>&#8249;</button>}
+            <button type="button" className="btn-next" onClick={handleNext} disabled={loading}>&#8250;</button>
           </footer>
         )}
       </div>

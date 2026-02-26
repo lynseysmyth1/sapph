@@ -1,0 +1,66 @@
+.dist-perm-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px;
+  gap: 0;
+}
+
+.dist-perm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #FFF0EC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sapph-orange);
+  margin-bottom: 20px;
+}
+
+.dist-perm-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.dist-perm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 10px;
+}
+
+.dist-perm-body {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.dist-perm-btn {
+  padding: 14px 32px;
+  background: var(--sapph-orange);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dist-perm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dist-perm-btn:not(:disabled):active {
+  background: var(--sapph-orange-hover);
+}
+
+.dist-perm-web-hint {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 12px;
+}

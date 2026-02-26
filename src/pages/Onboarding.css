@@ -33,7 +33,7 @@
   margin: 0 auto;
   padding: 1.25rem 1.5rem;
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
 }
 
@@ -125,6 +125,15 @@
   color: var(--sapph-text-body);
   line-height: 1.6;
   margin: 0;
+}
+
+.step-intro-subtitle {
+  font-family: 'Lato', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--sapph-text-body);
+  line-height: 1.5;
+  margin: 0.5rem 0 0;
 }
 
 .step-completion-note,
@@ -233,6 +242,15 @@
   margin: 0;
   letter-spacing: -0.02em;
   white-space: pre-line;
+}
+
+.theme-divider .step-intro-subtitle {
+  font-family: 'Lato', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin: 0.75rem 0 0;
 }
 
 .theme-divider .step-intro-note {
@@ -605,7 +623,9 @@
   right: 0;
   bottom: 0;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
   padding: 0.75rem 1.5rem;
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   background: var(--sapph-bg);
@@ -613,39 +633,49 @@
 }
 
 .btn-next, .btn-back {
-  padding: 1.1rem 2rem;
-  border-radius: 50px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   font-family: 'Prompt', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
   transition: all 0.2s;
 }
 
 .btn-next {
-  flex: 2;
   background-color: var(--sapph-orange);
   color: white;
   border: none;
 }
 
-/* When btn-next is used standalone (not in footer), don't use flex stretching */
+/* When btn-next is used standalone (not in footer), keep pill shape for Finish button */
 .step-completion-with-cta .btn-next {
-  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  border-radius: 50px;
+  padding: 1.1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-.btn-next:hover {
+.btn-next:not(:disabled):hover {
   background-color: var(--sapph-orange-hover);
   transform: translateY(-1px);
 }
 
 .btn-back {
-  flex: 1;
   background-color: transparent;
   color: #888888;
-  border: 1px solid #dddddd;
+  border: 1.5px solid #dddddd;
 }
 
-.btn-back:hover {
+.btn-back:not(:disabled):hover {
   background-color: #f5f5f5;
   color: var(--sapph-text-body);
 }
@@ -678,4 +708,34 @@
   .section-title {
     font-size: 1.75rem;
   }
+}
+
+.btn-skip-step {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.btn-skip-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-skip-step:not(:disabled):active {
+  color: #555;
+}
+
+.theme-divider .btn-skip-step {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.theme-divider .btn-skip-step:not(:disabled):active {
+  color: #fff;
 }

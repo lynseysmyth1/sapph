@@ -1,10 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useDiscovery } from '../contexts/DiscoveryContext'
 import { useState, useEffect, useRef } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { recordLike, recordPass } from '../lib/chatHelpers'
-import { getDiscoveryProfiles } from '../lib/discoveryHelpers'
 import './Home.css'
 
 function formatValue(value, fieldId) {
@@ -34,30 +34,31 @@ const ALWAYS_VISIBLE_IDS = new Set(['full_name', 'dob', 'photos', 'bio', 'conver
 
 export default function Home() {
   const { user, profile, profileLoading, signOut, refreshProfile } = useAuth()
+  const {
+    profiles,
+    currentProfile,
+    loading,
+    hasLoaded,
+    loadNextProfile,
+    handleReloadAllProfiles,
+    addPassedUserId,
+    removeLastPassedUserId,
+  } = useDiscovery()
   const navigate = useNavigate()
   const location = useLocation()
   const pathname = location.pathname
   const [activePhotoIndex, setActivePhotoIndex] = useState(0)
   const [resetting, setResetting] = useState(false)
-  const [currentProfile, setCurrentProfile] = useState(null)
-  const [profiles, setProfiles] = useState([])
-  const [loading, setLoading] = useState(false) // Start false, will be set true when actually loading profiles
   const [liking, setLiking] = useState(false)
   const [showMatch, setShowMatch] = useState(false)
   const [matchedProfile, setMatchedProfile] = useState(null)
   const [matchedConversationId, setMatchedConversationId] = useState(null)
   const [matchedLikeType, setMatchedLikeType] = useState(null)
-  const [passedUserIds, setPassedUserIds] = useState([])
-  const [reloadIncludingPassed, setReloadIncludingPassed] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
 
   // Swipe gesture tracking — refs update synchronously, avoiding React state async race conditions
   const touchStartRef = useRef(null)
   const touchEndRef = useRef(null)
   const swipeDirectionRef = useRef(null)
-
-  // Track when a loading cycle started so we can enforce a minimum display time
-  const loadingStartRef = useRef(null)
 
   // Card stack swipe animation
   const cardTrackRef = useRef(null)
@@ -105,72 +106,9 @@ export default function Home() {
     }
   }, [user?.id, profile?.id, profile?.onboarding_completed, profileLoading, navigate])
 
-  // Load discovery profiles
+  // Reset photo index and preload photos when the current profile changes
   useEffect(() => {
-    // Don't load if profile is still loading
-    if (profileLoading) {
-      setLoading(false)
-      return
-    }
-    
-    // If user or profile ID missing, wait
-    if (!user?.id || !profile?.id) {
-      setLoading(false)
-      return
-    }
-    
-    // Wait for onboarding to be completed before loading discovery
-    if (profile.onboarding_completed !== true) {
-      setLoading(false)
-      return
-    }
-
-    const loadProfiles = async () => {
-      setLoading(true)
-      loadingStartRef.current = Date.now()
-      console.log('[Home] loadProfiles START | user.id:', user.id, '| passedUserIds:', passedUserIds.length, '| reloadIncludingPassed:', reloadIncludingPassed)
-      try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Profile load timeout')), 15000)
-        )
-
-        const discoveryProfiles = await Promise.race([
-          getDiscoveryProfiles(user.id, passedUserIds, 50, { includePassed: reloadIncludingPassed, matchingPreferences: profile.matching_preferences || null }),
-          timeoutPromise
-        ])
-
-        console.log('[Home] loadProfiles DONE | received:', discoveryProfiles.length, 'profiles')
-        setProfiles(discoveryProfiles)
-        if (discoveryProfiles.length > 0) {
-          setCurrentProfile(discoveryProfiles[0])
-          setActivePhotoIndex(0)
-        } else {
-          setCurrentProfile(null)
-        }
-      } catch (error) {
-        console.error('[Home] Error loading discovery profiles:', error.message || error)
-        setProfiles([])
-        setCurrentProfile(null)
-      } finally {
-        setReloadIncludingPassed(false)
-        // Enforce 200ms minimum so skeleton never flashes then vanishes instantly
-        const elapsed = Date.now() - (loadingStartRef.current || Date.now())
-        const remaining = Math.max(0, 200 - elapsed)
-        if (remaining > 0) {
-          await new Promise(resolve => setTimeout(resolve, remaining))
-        }
-        setLoading(false)
-      }
-    }
-
-    loadProfiles()
-    // reloadIncludingPassed intentionally omitted — we only want effect to run when passedUserIds
-    // (or other deps) change; resetting it in finally must not trigger another load
-    // reloadKey forces a reload when "See All Profiles Again" is tapped (even if passedUserIds unchanged)
-  }, [user?.id, profile?.id, profile?.onboarding_completed, profileLoading, passedUserIds, reloadKey])
-
-  // Preload all photos for the current profile and the next profile's photos
-  useEffect(() => {
+    setActivePhotoIndex(0)
     const currentPhotos = currentProfile?.photos?.filter(url => url.startsWith('http')) || []
     currentPhotos.slice(1).forEach(url => {
       const img = new Image()
@@ -235,40 +173,12 @@ export default function Home() {
     if (!currentProfile) return
     const passedId = currentProfile.id
     recordPass(user.id, passedId).catch(() => {})
-    setPassedUserIds(prev => [...prev, passedId])
+    addPassedUserId(passedId)
     animateCardOut('left', () => loadNextProfile())
   }
 
-  const loadNextProfile = () => {
-    if (profiles.length <= 1) {
-      // No more profiles, reload discovery
-      setCurrentProfile(null)
-      setProfiles([])
-      // Trigger reload
-      setPassedUserIds(prev => [...prev])
-      return
-    }
-    
-    // Remove current profile and show next one
-    const remaining = profiles.slice(1)
-    setProfiles(remaining)
-    if (remaining.length > 0) {
-      setCurrentProfile(remaining[0])
-      setActivePhotoIndex(0)
-    }
-  }
-
   const loadPreviousProfile = () => {
-    // For now, just reload from discovery
-    // In a real app, you might want to maintain a history
-    setPassedUserIds(prev => prev.slice(0, -1))
-  }
-
-  const handleReloadAllProfiles = () => {
-    setReloadKey(k => k + 1)
-    setPassedUserIds([])
-    setReloadIncludingPassed(true)
-    setLoading(true)
+    removeLastPassedUserId()
   }
 
   // Touch handlers for swipe gestures — all tracking uses refs for synchronous reads
@@ -407,7 +317,7 @@ export default function Home() {
       return (
         <div className="app-loading">
           <div className="app-loading-brand">
-            <div className="app-loading-logo">S</div>
+            <div className="app-loading-logo"><img src="/logos/logo-orange.png" alt="Sapph" /></div>
             <div className="app-loading-dots">
               <span></span><span></span><span></span>
             </div>
@@ -427,7 +337,7 @@ export default function Home() {
     )
   }
 
-  if (loading) {
+  if (loading || !hasLoaded) {
     return (
       <div className="home-container">
         <div className="card-stage">
@@ -752,7 +662,7 @@ export default function Home() {
                       )}
                       {showField('children') && currentProfile.children && currentProfile.children !== 'Prefer not to say' && (
                         <div className="grid-item">
-                          <span className="grid-label">KIDS</span>
+                          <span className="grid-label">FAMILY PLANS</span>
                           <span className="grid-value">{currentProfile.children}</span>
                         </div>
                       )}
