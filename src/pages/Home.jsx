@@ -69,6 +69,8 @@ export default function Home() {
   const touchStartRef = useRef(null)
   const touchEndRef = useRef(null)
   const swipeDirectionRef = useRef(null)
+  // Prevents onClick firing after a touch swipe already handled photo cycling
+  const touchHandledRef = useRef(false)
 
   // Card stack swipe animation
   const cardTrackRef = useRef(null)
@@ -142,12 +144,14 @@ export default function Home() {
     cardTrackRef.current.style.transition = 'transform 0.25s ease'
     cardTrackRef.current.style.transform = `translateX(${translateTarget})`
     setTimeout(() => {
-      if (cardTrackRef.current) {
-        cardTrackRef.current.style.transition = 'none'
-        cardTrackRef.current.style.transform = 'translateX(0)'
-      }
-      isAnimatingRef.current = false
       callback()
+      requestAnimationFrame(() => {
+        if (cardTrackRef.current) {
+          cardTrackRef.current.style.transition = 'none'
+          cardTrackRef.current.style.transform = 'translateX(0)'
+        }
+        isAnimatingRef.current = false
+      })
     }, 250)
   }
 
@@ -252,10 +256,12 @@ export default function Home() {
     if (direction === 'vertical' || (absY > absX && absY > minSwipeDistance)) {
       const photos = currentProfile?.photos?.filter(url => url.startsWith('http')) || []
       if (photos.length > 1) {
-        if (distanceY < -minSwipeDistance && activePhotoIndex < photos.length - 1) {
-          setActivePhotoIndex(prev => prev + 1)
-        } else if (distanceY > minSwipeDistance && activePhotoIndex > 0) {
-          setActivePhotoIndex(prev => prev - 1)
+        if (distanceY < -minSwipeDistance) {
+          setActivePhotoIndex(prev => (prev + 1) % photos.length)
+          touchHandledRef.current = true
+        } else if (distanceY > minSwipeDistance) {
+          setActivePhotoIndex(prev => (prev - 1 + photos.length) % photos.length)
+          touchHandledRef.current = true
         }
       }
       // Reset track position in case it was briefly moved
@@ -276,12 +282,14 @@ export default function Home() {
             cardTrackRef.current.style.transition = 'transform 0.28s ease'
             cardTrackRef.current.style.transform = 'translateX(-50%)'
             setTimeout(() => {
-              if (cardTrackRef.current) {
-                cardTrackRef.current.style.transition = 'none'
-                cardTrackRef.current.style.transform = 'translateX(0)'
-              }
               loadNextProfile()
-              isAnimatingRef.current = false
+              requestAnimationFrame(() => {
+                if (cardTrackRef.current) {
+                  cardTrackRef.current.style.transition = 'none'
+                  cardTrackRef.current.style.transform = 'translateX(0)'
+                }
+                isAnimatingRef.current = false
+              })
             }, 280)
           } else {
             // Not far enough — snap back to start
@@ -551,23 +559,29 @@ export default function Home() {
                 <section className="profile-photo-section">
                   {currentProfile.photos?.length > 0 ? (
                     <div className="main-photo-container">
-                      <img
-                        src={currentProfile.photos.filter(url => url.startsWith('http'))[activePhotoIndex] || currentProfile.photos.filter(url => url.startsWith('http'))[0]}
-                        alt={currentProfile.full_name}
-                        className="main-photo"
-                        onClick={(e) => {
-                          const photos = currentProfile.photos.filter(url => url.startsWith('http'))
-                          if (photos.length <= 1) return
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          const mid = rect.left + rect.width / 2
-                          if (e.clientX < mid) {
-                            setActivePhotoIndex(prev => Math.max(0, prev - 1))
-                          } else {
-                            setActivePhotoIndex(prev => Math.min(photos.length - 1, prev + 1))
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      />
+                      {currentProfile.photos.filter(url => url.startsWith('http')).map((url, i) => (
+                        <img
+                          key={url}
+                          src={url}
+                          alt={currentProfile.full_name}
+                          className={`main-photo${i === activePhotoIndex ? ' active' : ''}`}
+                          onClick={(e) => {
+                            if (touchHandledRef.current) {
+                              touchHandledRef.current = false
+                              return
+                            }
+                            const photos = currentProfile.photos.filter(url => url.startsWith('http'))
+                            if (photos.length <= 1) return
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            const mid = rect.left + rect.width / 2
+                            if (e.clientX < mid) {
+                              setActivePhotoIndex(prev => (prev - 1 + photos.length) % photos.length)
+                            } else {
+                              setActivePhotoIndex(prev => (prev + 1) % photos.length)
+                            }
+                          }}
+                        />
+                      ))}
                       <div className="photo-indicators">
                         {currentProfile.photos.filter(url => url.startsWith('http')).map((_, i) => (
                           <div
@@ -809,7 +823,7 @@ export default function Home() {
               <div className="next-card-photo-wrap">
                 <img
                   src={nextProfile.photos?.filter(url => url.startsWith('http'))[0]}
-                  className="main-photo"
+                  className="next-card-photo"
                   alt={nextProfile.full_name}
                 />
                 <div className="next-card-name-overlay">

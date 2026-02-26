@@ -101,9 +101,19 @@
 }
 
 .main-photo {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.main-photo.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .photo-indicators {

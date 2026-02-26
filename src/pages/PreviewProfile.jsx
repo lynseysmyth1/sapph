@@ -146,23 +146,25 @@ export default function PreviewProfile() {
             {profile.photos?.length > 0 ? (
               <>
                 <div className="main-photo-container">
-                  <img
-                    src={profile.photos.filter(url => url.startsWith('http'))[activePhotoIndex] || profile.photos.filter(url => url.startsWith('http'))[0]}
-                    alt={profile.full_name}
-                    className="main-photo"
-                    onClick={(e) => {
-                      const photos = profile.photos.filter(url => url.startsWith('http'))
-                      if (photos.length <= 1) return
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      const mid = rect.left + rect.width / 2
-                      if (e.clientX < mid) {
-                        setActivePhotoIndex(prev => Math.max(0, prev - 1))
-                      } else {
-                        setActivePhotoIndex(prev => Math.min(photos.length - 1, prev + 1))
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
+                  {profile.photos.filter(url => url.startsWith('http')).map((url, i) => (
+                    <img
+                      key={url}
+                      src={url}
+                      alt={profile.full_name}
+                      className={`main-photo${i === activePhotoIndex ? ' active' : ''}`}
+                      onClick={(e) => {
+                        const photos = profile.photos.filter(url => url.startsWith('http'))
+                        if (photos.length <= 1) return
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        const mid = rect.left + rect.width / 2
+                        if (e.clientX < mid) {
+                          setActivePhotoIndex(prev => (prev - 1 + photos.length) % photos.length)
+                        } else {
+                          setActivePhotoIndex(prev => (prev + 1) % photos.length)
+                        }
+                      }}
+                    />
+                  ))}
                   <div className="photo-indicators">
                     {profile.photos.filter(url => url.startsWith('http')).map((_, i) => (
                       <div
