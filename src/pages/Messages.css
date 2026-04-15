@@ -26,45 +26,6 @@
   margin: 0;
 }
 
-/* Tabs */
-.messages-tabs {
-  display: flex;
-  border-bottom: 1px solid #eee;
-  padding: 0 20px;
-}
-
-.messages-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #999;
-  font-family: 'Prompt', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.messages-tab.active {
-  color: var(--sapph-orange);
-  border-bottom-color: var(--sapph-orange);
-}
-
-.tab-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.messages-tab:last-child .tab-icon {
-  width: 40px;
-  height: 40px;
-}
 
 /* Content */
 .messages-content {
