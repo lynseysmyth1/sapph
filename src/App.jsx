@@ -10,6 +10,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Home = lazy(() => import('./pages/Home'))
 const Profile = lazy(() => import('./pages/Profile'))
 const PreviewProfile = lazy(() => import('./pages/PreviewProfile'))
+const ViewProfile = lazy(() => import('./pages/ViewProfile'))
 const AgeRangePreferences = lazy(() => import('./pages/preferences/AgeRangePreferences'))
 const DistancePreferences = lazy(() => import('./pages/preferences/DistancePreferences'))
 const GenderPreferences = lazy(() => import('./pages/preferences/GenderPreferences'))
@@ -129,6 +130,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <PreviewProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/view-profile"
+        element={
+          <ProtectedRoute>
+            <ViewProfile />
           </ProtectedRoute>
         }
       />

@@ -1,0 +1,74 @@
+.view-profile-container {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sapph-bg);
+  overflow: hidden;
+}
+
+/* Back button bar */
+.view-profile-header {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  z-index: 10;
+}
+
+/* Scrollable profile content */
+.view-profile-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Spacer so content is not hidden behind sticky action bar */
+.view-profile-action-spacer {
+  height: 100px;
+}
+
+/* Sticky action bar at the bottom */
+.view-profile-actions {
+  flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+/* Pass + like buttons row (Friends tab) */
+.view-profile-like-buttons {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Go to chat button (Likes tab) */
+.view-profile-chat-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 16px;
+  background: var(--sapph-orange);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.view-profile-chat-btn:active {
+  opacity: 0.85;
+}

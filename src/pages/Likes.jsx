@@ -49,12 +49,13 @@ export default function Likes() {
   }, [user, activeTab])
 
   const handleItemClick = (item) => {
-    if (activeTab === 'likes' && item.conversationId) {
-      navigate(`/chat/${item.conversationId}`)
-    } else if (activeTab === 'likes') {
-      navigate('/messages')
-    }
-    // One-way friend likes are not tappable (no conversation yet)
+    navigate('/view-profile', {
+      state: {
+        profile: item,
+        isMatch: activeTab === 'likes',
+        conversationId: item.conversationId || null,
+      }
+    })
   }
 
   const emptyHeading = activeTab === 'likes' ? 'No likes yet' : 'No friends yet'
@@ -111,7 +112,7 @@ export default function Likes() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className={`like-item${activeTab === 'likes' ? ' like-item-tappable' : ''}`}
+                  className="like-item like-item-tappable"
                   onClick={() => handleItemClick(item)}
                 >
                   <div className="like-avatar">
