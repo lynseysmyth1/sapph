@@ -250,7 +250,9 @@
 }
 
 .like-icon.friendship-icon {
-  color: #666;
+  color: var(--sapph-orange);
+  width: 36px;
+  height: 36px;
 }
 
 .like-matched {
