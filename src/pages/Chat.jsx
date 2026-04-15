@@ -107,7 +107,8 @@ export default function Chat() {
           const msgs = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-            isSent: doc.data().senderId === user.id
+            isSent: doc.data().senderId === user.id,
+            isSystem: doc.data().senderId === 'system'
           }))
           setMessages(msgs)
           
@@ -251,7 +252,7 @@ export default function Chat() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`message-bubble ${message.isSent ? 'sent' : 'received'}`}
+                className={`message-bubble ${message.isSystem ? 'system' : message.isSent ? 'sent' : 'received'}`}
               >
                 <p className="message-text">{message.text}</p>
                 <span className="message-time">{formatMessageTime(message.timestamp)}</span>

@@ -116,8 +116,39 @@ export async function recordLike(fromUserId, toUserId, likeType) {
     // Mark this like as matched
     await updateDoc(likeRef, { matched: true })
 
+    // Also mark User B's reciprocal like as matched
+    const reciprocalSnap = await getDocs(query(
+      likesRef,
+      where('fromUserId', '==', toUserId),
+      where('toUserId', '==', fromUserId),
+      where('likeType', '==', likeType)
+    ))
+    if (!reciprocalSnap.empty) {
+      await updateDoc(reciprocalSnap.docs[0].ref, { matched: true })
+    }
+
     // Create conversation for the matched pair and capture the ID
     const conversationId = await getOrCreateConversation(fromUserId, toUserId, likeType)
+
+    // Write a system first message so both users see the match in their chat
+    const systemText = likeType === 'friendship'
+      ? 'You are now friends! Start a conversation'
+      : "It's a match! Say hello"
+
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages')
+    await addDoc(messagesRef, {
+      text: systemText,
+      senderId: 'system',
+      timestamp: serverTimestamp(),
+      read: false
+    })
+
+    // Update the conversation preview to show the system message
+    await updateDoc(doc(db, 'conversations', conversationId), {
+      lastMessage: systemText,
+      lastMessageTime: serverTimestamp(),
+      lastMessageSenderId: 'system'
+    })
 
     return { likeId: likeRef.id, isMatch: true, conversationId }
   }

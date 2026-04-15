@@ -158,6 +158,24 @@
   border-bottom-right-radius: 4px;
 }
 
+.message-bubble.system {
+  align-self: center;
+  background: transparent;
+  padding: 4px 12px;
+  border-radius: 0;
+  text-align: center;
+}
+
+.message-bubble.system .message-text {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+.message-bubble.system .message-time {
+  display: none;
+}
+
 .message-text {
   font-family: 'Lato', sans-serif;
   font-size: 1rem;
