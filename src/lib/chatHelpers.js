@@ -170,8 +170,9 @@ export async function updatePresence(userId, isOnline) {
 }
 
 /**
- * Permanently delete a user's account — profile doc, passes, and Firebase Auth user.
- * Likes and conversations are left orphaned (invisible since profile is gone).
+ * Permanently delete a user's account and all associated data (GDPR Article 9 compliant).
+ * Deletes: profile, passes, likes given, likes received, conversations + messages, presence,
+ * and finally the Firebase Auth user.
  * Must be called while the user is still authenticated.
  * Throws 'auth/requires-recent-login' if re-authentication is needed.
  */
@@ -186,7 +187,37 @@ export async function deleteAccount(userId) {
   ))
   await Promise.all(passesSnap.docs.map(d => deleteDoc(d.ref)))
 
-  // 3. Delete Firebase Auth user — must be last since auth is lost after this
+  // 3. Delete likes given by this user
+  const likesGivenSnap = await getDocs(query(
+    collection(db, 'likes'),
+    where('fromUserId', '==', userId)
+  ))
+  await Promise.all(likesGivenSnap.docs.map(d => deleteDoc(d.ref)))
+
+  // 4. Delete likes received by this user (other users' likes pointing at the deleted user)
+  const likesReceivedSnap = await getDocs(query(
+    collection(db, 'likes'),
+    where('toUserId', '==', userId)
+  ))
+  await Promise.all(likesReceivedSnap.docs.map(d => deleteDoc(d.ref)))
+
+  // 5. Delete conversations and their messages subcollections involving this user
+  const convoSnap = await getDocs(query(
+    collection(db, 'conversations'),
+    where('participants', 'array-contains', userId)
+  ))
+  await Promise.all(convoSnap.docs.map(async (convoDoc) => {
+    const msgsSnap = await getDocs(
+      collection(db, 'conversations', convoDoc.id, 'messages')
+    )
+    await Promise.all(msgsSnap.docs.map(m => deleteDoc(m.ref)))
+    await deleteDoc(convoDoc.ref)
+  }))
+
+  // 6. Delete presence record
+  await deleteDoc(doc(db, 'presence', userId))
+
+  // 7. Delete Firebase Auth user — must be last since auth is lost after this
   await deleteUser(auth.currentUser)
 }
 
