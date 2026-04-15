@@ -160,6 +160,11 @@
   height: 20px;
 }
 
+.likes-tab:last-child .tab-icon {
+  width: 40px;
+  height: 40px;
+}
+
 .likes-loading {
   padding: 40px 20px;
   text-align: center;
