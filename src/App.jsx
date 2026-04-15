@@ -23,6 +23,9 @@ const Messages = lazy(() => import('./pages/Messages'))
 const Chat = lazy(() => import('./pages/Chat'))
 const TestFirebase = lazy(() => import('./pages/TestFirebase'))
 const LocationPermission = lazy(() => import('./pages/LocationPermission'))
+const Privacy = lazy(() => import('./pages/legal/Privacy'))
+const Terms   = lazy(() => import('./pages/legal/Terms'))
+const Cookies = lazy(() => import('./pages/legal/Cookies'))
 
 function ProtectedRoute({ children }) {
   const { user, authLoading } = useAuth()
@@ -217,6 +220,9 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms"   element={<Terms />} />
+      <Route path="/cookies" element={<Cookies />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>

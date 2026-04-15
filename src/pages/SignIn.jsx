@@ -367,8 +367,8 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
             </form>
             <div className="signin-legal">
               By tapping Sign in or Create account, you agree to our{' '}
-              <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our{' '}
-              <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
+              <Link to="/terms">Terms of Service</Link>. Learn how we process your data in our{' '}
+              <Link to="/privacy">Privacy Policy</Link> and <Link to="/cookies">Cookies Policy</Link>.
             </div>
             <div className="signin-footer">
               <button type="button" className="signin-back" onClick={onBack}>Cancel</button>
@@ -415,7 +415,7 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
                 <button type="button" className="signin-link" onClick={() => { setStep('choice'); setEmail(''); setPassword(''); setMessage({ type: '', text: '' }) }} disabled={loading}>← Back</button>
               </form>
               <div className="signin-legal">
-                By tapping Sign in or Create account, you agree to our <a href="/terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>. Learn how we process your data in our <a href="/privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a> and <a href="/cookies" onClick={(e) => e.preventDefault()}>Cookies Policy</a>.
+                By tapping Sign in or Create account, you agree to our <Link to="/terms">Terms of Service</Link>. Learn how we process your data in our <Link to="/privacy">Privacy Policy</Link> and <Link to="/cookies">Cookies Policy</Link>.
               </div>
               <div className="signin-footer">
                 <Link to="/" className="signin-back">Cancel</Link>
