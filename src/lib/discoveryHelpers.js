@@ -128,7 +128,7 @@ function passesFilters(candidate, prefs, currentUserCoords) {
  *   matchingPreferences: The current user's matching_preferences object for filtering
  */
 export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], maxResults = 20, options = {}) {
-  const { includePassed = false, matchingPreferences = null, currentUserCoords = null } = options
+  const { includePassed = false, matchingPreferences = null, currentUserCoords = null, currentUserProfile = null } = options
 
   try {
     // Fetch already-liked user IDs from Firestore (always exclude)
@@ -186,6 +186,17 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
       if (!passesFilters(profileData, matchingPreferences, currentUserCoords)) {
         excludedCount++
         continue
+      }
+
+      // Reverse check — do I pass their preferences?
+      if (currentUserProfile) {
+        const candidateCoords = (profileData.latitude != null && profileData.longitude != null)
+          ? { latitude: profileData.latitude, longitude: profileData.longitude }
+          : null
+        if (!passesFilters(currentUserProfile, profileData.matching_preferences, candidateCoords)) {
+          excludedCount++
+          continue
+        }
       }
 
       profiles.push({

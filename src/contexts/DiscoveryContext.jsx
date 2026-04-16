@@ -86,7 +86,8 @@ export function DiscoveryProvider({ children }) {
           getDiscoveryProfiles(user.id, passedUserIds, 50, {
             includePassed: reloadIncludingPassed,
             matchingPreferences: profile.matching_preferences || null,
-            currentUserCoords
+            currentUserCoords,
+            currentUserProfile: profile
           }),
           timeoutPromise
         ])
