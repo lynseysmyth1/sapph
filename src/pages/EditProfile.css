@@ -8,120 +8,30 @@
   overflow: hidden;
 }
 
-
 .ep-scroll {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 16px 20px 0;
+  padding: 0 0 0;
 }
 
-/* Photo grid hint spacing */
+/* Sections reuse .matching-preferences-section from Profile.css */
+.matching-preferences-section {
+  margin-bottom: 0;
+}
+
+/* Photo hint */
 .ep-photos-hint {
-  margin-bottom: 12px;
-}
-
-/* Section headings */
-.ep-section-header {
-  font-family: 'Prompt', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #aaa;
-  margin: 24px 0 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
-}
-
-.ep-section-header:first-of-type {
-  margin-top: 8px;
-}
-
-/* Field rows */
-.ep-field-row {
-  padding: 14px 0;
-  border-bottom: 1px solid #f4f4f4;
-}
-
-.ep-field-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  gap: 8px;
-}
-
-.ep-field-label {
-  font-family: 'Prompt', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--sapph-text);
-}
-
-/* Visibility toggle */
-.ep-visibility-toggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.ep-visibility-toggle input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--sapph-orange);
-  cursor: pointer;
-}
-
-.ep-visibility-label {
-  font-family: 'Lato', sans-serif;
-  font-size: 0.75rem;
-  color: #888;
-  white-space: nowrap;
-}
-
-.ep-always-visible {
-  font-family: 'Lato', sans-serif;
-  font-size: 0.75rem;
-  color: #bbb;
-  flex-shrink: 0;
-}
-
-/* Read-only value */
-.ep-readonly-value {
-  font-family: 'Lato', sans-serif;
-  font-size: 1rem;
-  color: var(--sapph-text);
-  margin: 0 0 4px;
-}
-
-.ep-field-hint {
   font-family: 'Lato', sans-serif;
   font-size: 0.78rem;
   color: #aaa;
-  margin: 0;
+  margin: 0 20px 12px;
 }
 
-/* Text inputs */
-.ep-input {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-family: 'Lato', sans-serif;
-  font-size: 0.95rem;
-  color: var(--sapph-text);
-  background: white;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.ep-input:focus {
-  border-color: var(--sapph-orange);
+/* Inline fields (bio, icebreaker) */
+.ep-inline-field {
+  padding: 0 20px 16px;
 }
 
 /* Textareas */
@@ -153,60 +63,27 @@
   margin: 4px 0 0;
 }
 
-/* Select / Height */
-.ep-height-row {
-  display: flex;
-  gap: 10px;
-}
-
-.ep-select {
-  flex: 1;
-  padding: 11px 14px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-family: 'Lato', sans-serif;
-  font-size: 0.95rem;
-  color: var(--sapph-text);
-  background: white;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-}
-
-.ep-select:focus {
-  border-color: var(--sapph-orange);
-}
-
-/* Chip (radio/checkbox) groups */
-.ep-chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.ep-chip {
-  padding: 8px 14px;
-  border: 1.5px solid #ddd;
-  border-radius: 50px;
+/* Tappable field row — current value on the right */
+.ep-field-value {
   font-family: 'Lato', sans-serif;
   font-size: 0.85rem;
-  color: var(--sapph-text);
-  background: white;
-  cursor: pointer;
-  transition: all 0.15s;
+  color: #888;
+  flex: 1;
+  text-align: right;
+  margin: 0 8px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
 }
 
-.ep-chip.selected {
-  background: var(--sapph-orange);
-  border-color: var(--sapph-orange);
-  color: white;
-  font-weight: 600;
+/* Name row (non-tappable) */
+.ep-name-row {
+  cursor: default;
 }
 
-.ep-chip:active {
-  opacity: 0.8;
+.ep-name-row:active {
+  background: white;
 }
 
 /* Feedback */
@@ -217,18 +94,7 @@
   background: #fdecea;
   border-radius: 8px;
   padding: 10px 14px;
-  margin: 16px 0 0;
-  text-align: center;
-}
-
-.ep-saved {
-  font-family: 'Lato', sans-serif;
-  font-size: 0.9rem;
-  color: #2e7d32;
-  background: #e8f5e9;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin: 16px 0 0;
+  margin: 16px 20px 0;
   text-align: center;
 }
 

@@ -12,6 +12,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const PreviewProfile = lazy(() => import('./pages/PreviewProfile'))
 const ViewProfile = lazy(() => import('./pages/ViewProfile'))
 const EditProfile = lazy(() => import('./pages/EditProfile'))
+const EditProfileField = lazy(() => import('./pages/EditProfileField'))
 const AgeRangePreferences = lazy(() => import('./pages/preferences/AgeRangePreferences'))
 const DistancePreferences = lazy(() => import('./pages/preferences/DistancePreferences'))
 const GenderPreferences = lazy(() => import('./pages/preferences/GenderPreferences'))
@@ -147,6 +148,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <EditProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit-profile/field"
+        element={
+          <ProtectedRoute>
+            <EditProfileField />
           </ProtectedRoute>
         }
       />
