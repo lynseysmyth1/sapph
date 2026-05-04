@@ -1,36 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Capacitor } from '@capacitor/core';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, rectSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortablePhotoItem from '../components/SortablePhotoItem';
+import { compressImage, uploadPhotos } from '../lib/photoHelpers';
 import './Onboarding.css';
 
-function SortablePhotoItem({ id, url, index, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 10 : 'auto',
-  };
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="photo-preview sortable-photo">
-      <img src={url} alt={`Upload ${index + 1}`} />
-      <button
-        type="button"
-        className="remove-photo"
-        onPointerDown={e => e.stopPropagation()}
-        onClick={() => onRemove(index)}
-        aria-label="Remove"
-      >&times;</button>
-    </div>
-  );
-}
 
 // Full onboarding steps – types: intro, completion, text, textarea, radio, checkbox, photos, group
 const ONBOARDING_STEPS = [
@@ -332,83 +310,7 @@ export default function Onboarding() {
     return { ...data, photos: finalPhotoUrls, visibility_settings: visibilityData, onboarding_completed: true, updated_at: new Date().toISOString() };
   }
 
-  // Compress/resize image before upload (reduces file size significantly)
-  function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Calculate new dimensions
-          if (width > height) {
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            }
-          } else {
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height;
-              height = maxHeight;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          canvas.toBlob((blob) => {
-            resolve(blob || file); // Fallback to original if compression fails
-          }, 'image/jpeg', quality);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
 
-  // Background photo upload function (runs async after navigation)
-  // Uploads photos in parallel for faster completion
-  // Note: Photos are already compressed when selected
-  async function uploadPhotosInBackground(profileRef, photosToUpload, photoFiles, userId) {
-    const uploadPromises = [];
-    let fileIdx = 0;
-    
-    for (const url of photosToUpload) {
-      if (url.startsWith('blob:') && photoFiles[fileIdx]) {
-        const file = photoFiles[fileIdx]; // Already compressed
-        const idx = fileIdx; // Capture index for parallel uploads
-        
-        // Upload each photo in parallel
-        // Note: Photos are already compressed when selected, so we upload directly
-        const uploadPromise = (async () => {
-          try {
-            const fileName = `${Date.now()}-${idx}.jpg`;
-            const storageRef = ref(storage, `profile-photos/${userId}/${fileName}`);
-            
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-            return { index: idx, url: downloadURL };
-          } catch (uploadErr) {
-            console.error('[Onboarding] Photo upload error:', uploadErr);
-            return null;
-          }
-        })();
-        
-        uploadPromises.push(uploadPromise);
-        fileIdx++;
-      }
-    }
-    
-    // Wait for all uploads to complete in parallel
-    const results = await Promise.all(uploadPromises);
-    // Sort by index to maintain order
-    return results.filter(r => r !== null).sort((a, b) => a.index - b.index).map(r => r.url);
-  }
 
   const handleSubmit = async () => {
     if (loading) return;
@@ -549,7 +451,7 @@ export default function Onboarding() {
     
     // Upload photos in background (don't await - let it run async)
     if (photosToUpload.length > 0 && photoFiles.length > 0) {
-      uploadPhotosInBackground(profileRef, photosToUpload, photoFiles, user.id)
+      uploadPhotos(photosToUpload, photoFiles, user.id)
         .then((uploadedUrls) => {
           // Update profile with final photo URLs
           const finalUrls = [...existingPhotoUrls, ...uploadedUrls];

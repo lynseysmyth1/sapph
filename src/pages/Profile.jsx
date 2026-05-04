@@ -19,7 +19,7 @@ export default function Profile() {
   }
 
   const handleEditProfile = () => {
-    navigate('/onboarding')
+    navigate('/edit-profile')
   }
 
   const handleDeleteAccount = async () => {
@@ -57,22 +57,30 @@ export default function Profile() {
         <section className="profile-header-section">
           <div className="profile-header-image-row">
             <div className="profile-thumbnail-wrapper">
-              {profile.photos?.length > 0 ? (
-                <img
-                  src={profile.photos.filter(url => url.startsWith('http'))[0]}
-                  alt={profile.full_name}
-                  className="profile-header-thumbnail"
-                />
-              ) : (
-                <div className="profile-header-thumbnail-placeholder">
-                  {profile.full_name?.charAt(0).toUpperCase() || '?'}
+              <Link to="/edit-photos" className="profile-thumbnail-edit-link" aria-label="Edit photos">
+                {profile.photos?.length > 0 ? (
+                  <img
+                    src={profile.photos.filter(url => url.startsWith('http'))[0]}
+                    alt={profile.full_name}
+                    className="profile-header-thumbnail"
+                  />
+                ) : (
+                  <div className="profile-header-thumbnail-placeholder">
+                    {profile.full_name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+                <div className="profile-thumbnail-edit-overlay">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
                 </div>
-              )}
+              </Link>
             </div>
             <div className="profile-header-right">
               <h1 className="profile-header-name">{profile.full_name}</h1>
               <div className="profile-header-actions">
-                <Link to="/onboarding" className="profile-header-btn edit-btn">
+                <Link to="/edit-profile" className="profile-header-btn edit-btn">
                   Edit Profile
                 </Link>
                 <Link to="/preview-profile" className="profile-header-btn preview-btn">
