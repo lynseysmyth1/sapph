@@ -8,24 +8,6 @@
   overflow: hidden;
 }
 
-.ep-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
-  z-index: 10;
-}
-
-.ep-title {
-  font-family: 'Prompt', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--sapph-text);
-  margin: 0;
-}
 
 .ep-scroll {
   flex: 1;
@@ -33,6 +15,11 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: 16px 20px 0;
+}
+
+/* Photo grid hint spacing */
+.ep-photos-hint {
+  margin-bottom: 12px;
 }
 
 /* Section headings */

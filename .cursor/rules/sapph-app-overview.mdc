@@ -1,0 +1,68 @@
+---
+description: Sapph app architecture, key files, and conventions — always loaded for context
+alwaysApply: true
+---
+
+# Sapph — App Overview
+
+Sapph is a queer dating/friendship app. The frontend is **React + Vite**. The native iOS app wraps the web app via **Capacitor**, loading content from the live Firebase Hosting URL (`https://sapph-b4f8e.web.app`) — so web deployments update the native app automatically (no App Store build needed for most changes).
+
+## Tech Stack
+
+- **React + Vite** (JSX, no TypeScript)
+- **Firebase Firestore** — all data storage
+- **Firebase Storage** — profile photo uploads
+- **Firebase Hosting** — web deployment (`firebase deploy --only hosting`)
+- **Capacitor** — iOS/Android native wrapper
+- **react-router-dom** — routing (lazy-loaded pages, `ProtectedRoute`)
+- **@dnd-kit** — drag-and-drop for photo reordering
+
+## Key Source Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/firebase.js` | Firebase app init, `db`, `storage` exports |
+| `src/lib/chatHelpers.js` | `recordLike`, `recordPass`, `checkMatch`, `getOrCreateConversation`, `markConversationAsRead`, `deleteAccount` |
+| `src/lib/discoveryHelpers.js` | `getDiscoveryProfiles`, `passesFilters`, bidirectional preference filtering, liked-me prioritisation |
+| `src/lib/photoHelpers.js` | `compressImage`, `uploadPhotos` — shared by onboarding and EditPhotos |
+| `src/lib/useUnreadCount.js` | Hook: real-time total unread messages count across all conversations |
+| `src/contexts/AuthContext.jsx` | `user`, `profile`, `signOut`, `refreshProfile`, `updateProfile`, `needsOnboarding` |
+| `src/contexts/DiscoveryContext.jsx` | Discovery deck state — `profiles`, `currentProfile`, `loadNextProfile` |
+| `src/components/SortablePhotoItem.jsx` | Shared draggable photo tile (used by Onboarding + EditPhotos) |
+
+## Pages & Routes
+
+| Route | Page | Notes |
+|-------|------|-------|
+| `/home` | `Home.jsx` | Swipe deck, like/pass/wave actions |
+| `/likes` | `Likes.jsx` | Two tabs: Likes (mutual) + Friends (one-way waves) |
+| `/messages` | `Messages.jsx` | Unified conversation list |
+| `/chat/:chatId` | `Chat.jsx` | Individual chat, read receipts, system messages |
+| `/profile` | `Profile.jsx` | User's own profile, nav to edit screens |
+| `/preview-profile` | `PreviewProfile.jsx` | Preview how your profile looks to others |
+| `/view-profile` | `ViewProfile.jsx` | View another user's profile (from Likes page) |
+| `/edit-photos` | `EditPhotos.jsx` | Standalone photo manager (min 4, max 6 photos) |
+| `/edit-profile` | `EditProfile.jsx` | Single-page form for all profile fields + visibility toggles |
+| `/onboarding` | `Onboarding.jsx` | Step-by-step wizard, only for new users |
+| `/preferences/*` | Various | Matching preference screens (age, distance, gender, etc.) |
+
+## Firestore Data Model
+
+```
+profiles/{userId}          — full user profile, photos[], visibility_settings{}
+likes/{likeId}             — { fromUserId, toUserId, likeType: 'heart'|'friendship', matched, createdAt }
+passes/{passId}            — { fromUserId, toUserId }
+conversations/{convId}     — { participants[], likeType, lastMessage, unreadCount{} }
+  messages/{msgId}         — { text, senderId, timestamp, read }
+presence/{userId}          — online/offline tracking
+```
+
+## Core Conventions
+
+- **Icons** are inline SVGs using `fill="currentColor"` / `stroke="currentColor"` — colour via CSS inheritance
+- **`RainbowIcon`** component (defined locally in Likes, Messages, ViewProfile) represents friendship/wave
+- **System messages** use `senderId: 'system'` for match/friend notifications in chat
+- **Bottom nav** lives inside each page component (Home, Likes, Messages, Chat, Profile). Uses `useUnreadCount()` hook to show orange badge on the messages icon
+- **Visibility settings** stored as `visibility_settings: { fieldKey: boolean }` on the profile — `false` = hidden, anything else = visible
+- **Deploy command**: `npm run build && firebase deploy --only hosting`
+- **`back-arrow-button`** CSS class is reused across ViewProfile, EditPhotos, EditProfile for consistent back navigation

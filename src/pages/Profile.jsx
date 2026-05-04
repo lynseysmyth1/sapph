@@ -57,7 +57,7 @@ export default function Profile() {
         <section className="profile-header-section">
           <div className="profile-header-image-row">
             <div className="profile-thumbnail-wrapper">
-              <Link to="/edit-photos" className="profile-thumbnail-edit-link" aria-label="Edit photos">
+              <Link to="/edit-profile" className="profile-thumbnail-edit-link" aria-label="Edit photos">
                 {profile.photos?.length > 0 ? (
                   <img
                     src={profile.photos.filter(url => url.startsWith('http'))[0]}

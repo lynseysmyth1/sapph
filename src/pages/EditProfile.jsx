@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import SortablePhotoItem from '../components/SortablePhotoItem'
+import { compressImage, uploadPhotos } from '../lib/photoHelpers'
 import './EditProfile.css'
 
 // ── Field option lists (mirrored from ONBOARDING_STEPS) ──────────────────────
@@ -102,6 +106,9 @@ function CheckboxGroup({ fieldKey, options, values, onChange }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+const MIN_PHOTOS = 4
+const MAX_PHOTOS = 6
+
 export default function EditProfile() {
   const navigate = useNavigate()
   const { user, profile, refreshProfile } = useAuth()
@@ -115,6 +122,57 @@ export default function EditProfile() {
   const [error, setError] = useState(null)
   const [savedOk, setSavedOk] = useState(false)
 
+  // ── Photo state ──────────────────────────────────────────────────────────────
+  const [photos, setPhotos] = useState(() =>
+    (profile?.photos || []).filter(url => url.startsWith('http'))
+  )
+  const [photoFiles, setPhotoFiles] = useState([])
+
+  const photoSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  )
+
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    const oldIndex = photos.indexOf(active.id)
+    const newIndex = photos.indexOf(over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    setPhotos(prev => arrayMove(prev, oldIndex, newIndex))
+    setPhotoFiles(prev => arrayMove(prev, oldIndex, newIndex))
+  }
+
+  const handleAddPhotos = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length + photos.length > MAX_PHOTOS) {
+      setError(`Maximum ${MAX_PHOTOS} photos allowed`)
+      return
+    }
+    setError(null)
+    const urls = files.map(f => URL.createObjectURL(f))
+    setPhotos(prev => [...prev, ...urls])
+    Promise.all(files.map(f => compressImage(f)))
+      .then(compressed => setPhotoFiles(prev => [...prev, ...compressed]))
+      .catch(() => setPhotoFiles(prev => [...prev, ...files]))
+    e.target.value = ''
+  }
+
+  const handleRemovePhoto = (index) => {
+    if (photos.length <= MIN_PHOTOS) {
+      setError(`You need at least ${MIN_PHOTOS} photos`)
+      return
+    }
+    setError(null)
+    const newPhotos = [...photos]
+    const newFiles = [...photoFiles]
+    if (newPhotos[index]?.startsWith('blob:')) URL.revokeObjectURL(newPhotos[index])
+    newPhotos.splice(index, 1)
+    newFiles.splice(index, 1)
+    setPhotos(newPhotos)
+    setPhotoFiles(newFiles)
+  }
+
+  // ── Form helpers ─────────────────────────────────────────────────────────────
   const set = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }))
     setSavedOk(false)
@@ -129,6 +187,7 @@ export default function EditProfile() {
   const setHeight = (feet, inches) => set('height', formatHeight(feet, inches))
 
   const validate = () => {
+    if (photos.length < MIN_PHOTOS) return `Please add at least ${MIN_PHOTOS} photos`
     if (!formData.bio?.trim()) return 'Please write a short bio'
     if (!formData.conversation_starter?.trim()) return 'Please add a conversation starter'
     if (!Array.isArray(formData.connection_goals) || formData.connection_goals.length === 0) return 'Please select at least one connection goal'
@@ -141,9 +200,23 @@ export default function EditProfile() {
     setSaving(true)
     setError(null)
     try {
+      // Resolve any new blob photos to Firebase Storage URLs first
+      const existingUrls = photos.filter(url => url.startsWith('http'))
+      const blobUrls = photos.filter(url => url.startsWith('blob:'))
+      let finalPhotos = existingUrls
+      if (blobUrls.length > 0) {
+        const blobFiles = photoFiles.slice(existingUrls.length)
+        const uploadedUrls = await uploadPhotos(blobUrls, blobFiles, user.id)
+        let uploadIdx = 0
+        finalPhotos = photos
+          .map(url => url.startsWith('blob:') ? uploadedUrls[uploadIdx++] || url : url)
+          .filter(url => url.startsWith('http'))
+      }
+
       const profileRef = doc(db, 'profiles', user.id)
       await setDoc(profileRef, {
         ...formData,
+        photos: finalPhotos,
         visibility_settings: visibilityData,
         updated_at: new Date().toISOString(),
       }, { merge: true })
@@ -162,7 +235,7 @@ export default function EditProfile() {
 
   return (
     <div className="ep-container">
-      <header className="ep-header">
+      <div className="preview-profile-header">
         <button className="back-arrow-button" onClick={() => navigate('/profile')} aria-label="Back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5" />
@@ -170,22 +243,77 @@ export default function EditProfile() {
           </svg>
           <span className="back-label">Back</span>
         </button>
-        <h1 className="ep-title">Edit Profile</h1>
-      </header>
+      </div>
 
       <div className="ep-scroll">
 
-        {/* ── The Basics ── */}
-        <SectionHeader title="The basics" />
+        {/* ── Name ── */}
+        <SectionHeader title="Your profile" />
 
         <FieldRow label="Name" fieldKey="full_name" {...vp} alwaysVisible>
           <p className="ep-readonly-value">{formData.full_name || '—'}</p>
           <p className="ep-field-hint">Name cannot be changed after sign-up</p>
         </FieldRow>
 
-        <FieldRow label="Pronouns" fieldKey="pronouns" {...vp}>
-          <CheckboxGroup fieldKey="pronouns" options={PRONOUNS_OPTIONS} values={formData.pronouns} onChange={set} />
+        {/* ── Photos ── */}
+        <SectionHeader title="Photos" />
+        <p className="ep-field-hint ep-photos-hint">
+          Drag to reorder · {photos.length}/{MAX_PHOTOS} photos · minimum {MIN_PHOTOS} required
+        </p>
+        <DndContext sensors={photoSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={photos} strategy={rectSortingStrategy}>
+            <div className="photos-grid">
+              {photos.map((url, index) => (
+                <SortablePhotoItem
+                  key={url}
+                  id={url}
+                  url={url}
+                  index={index}
+                  onRemove={handleRemovePhoto}
+                />
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <label className="photo-add-btn" aria-label="Add photo">
+                  <span>+</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAddPhotos}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        <FieldRow label="Bio" fieldKey="bio" {...vp} alwaysVisible>
+          <textarea
+            className="ep-textarea"
+            value={formData.bio || ''}
+            placeholder="Write your bio..."
+            maxLength={500}
+            rows={5}
+            onChange={e => set('bio', e.target.value)}
+          />
+          <p className="ep-char-count">{(formData.bio || '').length}/500</p>
         </FieldRow>
+
+        <FieldRow label="Conversation starter" fieldKey="conversation_starter" {...vp} alwaysVisible>
+          <textarea
+            className="ep-textarea"
+            value={formData.conversation_starter || ''}
+            placeholder="e.g. Ask me about my favourite hike..."
+            maxLength={200}
+            rows={3}
+            onChange={e => set('conversation_starter', e.target.value)}
+          />
+          <p className="ep-char-count">{(formData.conversation_starter || '').length}/200</p>
+        </FieldRow>
+
+        {/* ── Identity ── */}
+        <SectionHeader title="Identity" />
 
         <FieldRow label="Gender identity" fieldKey="gender_identity" {...vp}>
           <RadioGroup fieldKey="gender_identity" options={GENDER_IDENTITY_OPTIONS} value={formData.gender_identity} onChange={set} />
@@ -198,6 +326,13 @@ export default function EditProfile() {
         <FieldRow label="Sexual identity" fieldKey="sexual_identity" {...vp}>
           <RadioGroup fieldKey="sexual_identity" options={SEXUAL_IDENTITY_OPTIONS} value={formData.sexual_identity} onChange={set} />
         </FieldRow>
+
+        <FieldRow label="Pronouns" fieldKey="pronouns" {...vp}>
+          <CheckboxGroup fieldKey="pronouns" options={PRONOUNS_OPTIONS} values={formData.pronouns} onChange={set} />
+        </FieldRow>
+
+        {/* ── About you ── */}
+        <SectionHeader title="About you" />
 
         <FieldRow label="Height" fieldKey="height" {...vp}>
           <div className="ep-height-row">
@@ -251,49 +386,6 @@ export default function EditProfile() {
           />
         </FieldRow>
 
-        <FieldRow label="Political alignment" fieldKey="political_alignment" {...vp}>
-          <RadioGroup fieldKey="political_alignment" options={POLITICAL_OPTIONS} value={formData.political_alignment} onChange={set} />
-        </FieldRow>
-
-        <FieldRow label="Zodiac sign" fieldKey="zodiac_sign" {...vp}>
-          <RadioGroup fieldKey="zodiac_sign" options={ZODIAC_OPTIONS} value={formData.zodiac_sign} onChange={set} />
-        </FieldRow>
-
-        <FieldRow label="Family plans" fieldKey="children" {...vp}>
-          <RadioGroup fieldKey="children" options={CHILDREN_OPTIONS} value={formData.children} onChange={set} />
-        </FieldRow>
-
-        <FieldRow label="Pets" fieldKey="pets" {...vp}>
-          <CheckboxGroup fieldKey="pets" options={PETS_OPTIONS} values={formData.pets} onChange={set} />
-        </FieldRow>
-
-        {/* ── About You ── */}
-        <SectionHeader title="About you" />
-
-        <FieldRow label="Bio" fieldKey="bio" {...vp} alwaysVisible>
-          <textarea
-            className="ep-textarea"
-            value={formData.bio || ''}
-            placeholder="Write your bio..."
-            maxLength={500}
-            rows={5}
-            onChange={e => set('bio', e.target.value)}
-          />
-          <p className="ep-char-count">{(formData.bio || '').length}/500</p>
-        </FieldRow>
-
-        <FieldRow label="Conversation starter" fieldKey="conversation_starter" {...vp} alwaysVisible>
-          <textarea
-            className="ep-textarea"
-            value={formData.conversation_starter || ''}
-            placeholder="e.g. Ask me about my favourite hike..."
-            maxLength={200}
-            rows={3}
-            onChange={e => set('conversation_starter', e.target.value)}
-          />
-          <p className="ep-char-count">{(formData.conversation_starter || '').length}/200</p>
-        </FieldRow>
-
         {/* ── Connection ── */}
         <SectionHeader title="Connection" />
 
@@ -305,12 +397,23 @@ export default function EditProfile() {
           <CheckboxGroup fieldKey="relationship_style" options={RELATIONSHIP_STYLE_OPTIONS} values={formData.relationship_style} onChange={set} />
         </FieldRow>
 
-        <FieldRow label="Sex preferences" fieldKey="sex_preferences" {...vp}>
-          <CheckboxGroup fieldKey="sex_preferences" options={SEX_PREFERENCES_OPTIONS} values={formData.sex_preferences} onChange={set} />
+        <FieldRow label="Family plans" fieldKey="children" {...vp}>
+          <RadioGroup fieldKey="children" options={CHILDREN_OPTIONS} value={formData.children} onChange={set} />
         </FieldRow>
 
-        <FieldRow label="Kink preferences" fieldKey="kinks" {...vp}>
-          <CheckboxGroup fieldKey="kinks" options={KINKS_OPTIONS} values={formData.kinks} onChange={set} />
+        {/* ── More about you ── */}
+        <SectionHeader title="More about you" />
+
+        <FieldRow label="Zodiac sign" fieldKey="zodiac_sign" {...vp}>
+          <RadioGroup fieldKey="zodiac_sign" options={ZODIAC_OPTIONS} value={formData.zodiac_sign} onChange={set} />
+        </FieldRow>
+
+        <FieldRow label="Political alignment" fieldKey="political_alignment" {...vp}>
+          <RadioGroup fieldKey="political_alignment" options={POLITICAL_OPTIONS} value={formData.political_alignment} onChange={set} />
+        </FieldRow>
+
+        <FieldRow label="Pets" fieldKey="pets" {...vp}>
+          <CheckboxGroup fieldKey="pets" options={PETS_OPTIONS} values={formData.pets} onChange={set} />
         </FieldRow>
 
         {/* ── Lifestyle ── */}
@@ -330,6 +433,17 @@ export default function EditProfile() {
 
         <FieldRow label="Other drugs" fieldKey="drugs" {...vp}>
           <RadioGroup fieldKey="drugs" options={DRUGS_OPTIONS} value={formData.drugs} onChange={set} />
+        </FieldRow>
+
+        {/* ── Intimate ── */}
+        <SectionHeader title="Intimate" />
+
+        <FieldRow label="Sex preferences" fieldKey="sex_preferences" {...vp}>
+          <CheckboxGroup fieldKey="sex_preferences" options={SEX_PREFERENCES_OPTIONS} values={formData.sex_preferences} onChange={set} />
+        </FieldRow>
+
+        <FieldRow label="Kink preferences" fieldKey="kinks" {...vp}>
+          <CheckboxGroup fieldKey="kinks" options={KINKS_OPTIONS} values={formData.kinks} onChange={set} />
         </FieldRow>
 
         {error && <p className="ep-error">{error}</p>}

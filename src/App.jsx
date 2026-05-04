@@ -11,7 +11,6 @@ const Home = lazy(() => import('./pages/Home'))
 const Profile = lazy(() => import('./pages/Profile'))
 const PreviewProfile = lazy(() => import('./pages/PreviewProfile'))
 const ViewProfile = lazy(() => import('./pages/ViewProfile'))
-const EditPhotos = lazy(() => import('./pages/EditPhotos'))
 const EditProfile = lazy(() => import('./pages/EditProfile'))
 const AgeRangePreferences = lazy(() => import('./pages/preferences/AgeRangePreferences'))
 const DistancePreferences = lazy(() => import('./pages/preferences/DistancePreferences'))
@@ -140,14 +139,6 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ViewProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/edit-photos"
-        element={
-          <ProtectedRoute>
-            <EditPhotos />
           </ProtectedRoute>
         }
       />
