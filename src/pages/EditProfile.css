@@ -21,11 +21,79 @@
   margin-bottom: 0;
 }
 
-/* Compact photo grid */
+/* Photo grid — full definition (Onboarding.css is lazy-loaded so we need this here too) */
 .ep-scroll .photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 0 20px;
   margin-bottom: 8px;
+}
+
+.ep-scroll .photo-preview,
+.ep-scroll .photo-add-btn {
+  aspect-ratio: 1/1;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ep-scroll .photo-preview {
+  border: none;
+}
+
+.ep-scroll .photo-add-btn {
+  border: 1px dashed #ccc;
+  cursor: pointer;
+  font-size: 2rem;
+  color: #ccc;
+  transition: all 0.2s;
+}
+
+.ep-scroll .photo-add-btn:hover {
+  background: #eee;
+  color: var(--sapph-orange);
+  border-color: var(--sapph-orange);
+}
+
+.ep-scroll .photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ep-scroll .sortable-photo {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.ep-scroll .sortable-photo:active {
+  cursor: grabbing;
+}
+
+.ep-scroll .remove-photo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 /* Photo hint */
