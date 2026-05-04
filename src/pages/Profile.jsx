@@ -97,6 +97,12 @@ export default function Profile() {
           <div className="matching-preferences-section">
             <h2 className="matching-preferences-heading">FILTER MATCHING PREFERENCES</h2>
             <div className="matching-preferences-list">
+              <Link to="/preferences/gender" className="matching-preference-item">
+                <span className="preference-label">Gender</span>
+                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </Link>
               <Link to="/preferences/age-range" className="matching-preference-item">
                 <span className="preference-label">Age Range</span>
                 <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -109,26 +115,8 @@ export default function Profile() {
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
               </Link>
-              <Link to="/preferences/gender" className="matching-preference-item">
-                <span className="preference-label">Gender</span>
-                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </Link>
               <Link to="/preferences/relationship-goals" className="matching-preference-item">
                 <span className="preference-label">Relationship Goals</span>
-                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </Link>
-              <Link to="/preferences/sex-preference" className="matching-preference-item">
-                <span className="preference-label">Sex Preference</span>
-                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </Link>
-              <Link to="/preferences/kinks" className="matching-preference-item">
-                <span className="preference-label">Kink Preferences</span>
                 <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
@@ -141,6 +129,18 @@ export default function Profile() {
               </Link>
               <Link to="/preferences/family-plans" className="matching-preference-item">
                 <span className="preference-label">Family Plans</span>
+                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </Link>
+              <Link to="/preferences/sex-preference" className="matching-preference-item">
+                <span className="preference-label">Sex Preference</span>
+                <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </Link>
+              <Link to="/preferences/kinks" className="matching-preference-item">
+                <span className="preference-label">Kink Preferences</span>
                 <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
