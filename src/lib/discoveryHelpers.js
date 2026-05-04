@@ -92,6 +92,15 @@ function passesFilters(candidate, prefs, currentUserCoords) {
     }
   }
 
+  // Kink preferences
+  const activeKinks = strip(prefs.kinks)
+  if (activeKinks.length > 0) {
+    const candidateKinks = strip(candidate.kinks)
+    if (candidateKinks.length > 0) {
+      if (!candidateKinks.some(k => activeKinks.includes(k))) return false
+    }
+  }
+
   // Family plans — match against candidate's children (string) field
   const activeFamilyPlans = strip(prefs.family_plans)
   if (activeFamilyPlans.length > 0 && candidate.children) {

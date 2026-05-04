@@ -17,6 +17,7 @@ const AgeRangePreferences = lazy(() => import('./pages/preferences/AgeRangePrefe
 const DistancePreferences = lazy(() => import('./pages/preferences/DistancePreferences'))
 const GenderPreferences = lazy(() => import('./pages/preferences/GenderPreferences'))
 const SexPreferencePreferences = lazy(() => import('./pages/preferences/SexPreferencePreferences'))
+const KinkPreferences = lazy(() => import('./pages/preferences/KinkPreferences'))
 const RelationshipStylePreferences = lazy(() => import('./pages/preferences/RelationshipStylePreferences'))
 const RelationshipGoalsPreferences = lazy(() => import('./pages/preferences/RelationshipGoalsPreferences'))
 const InterestsPreferences = lazy(() => import('./pages/preferences/InterestsPreferences'))
@@ -196,6 +197,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <SexPreferencePreferences />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/preferences/kinks"
+        element={
+          <ProtectedRoute>
+            <KinkPreferences />
           </ProtectedRoute>
         }
       />
