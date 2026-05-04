@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
+import { useUnreadCount } from '../lib/useUnreadCount'
 import './Messages.css'
 
 const RainbowIcon = ({ className }) => (
@@ -13,6 +14,7 @@ const RainbowIcon = ({ className }) => (
 
 export default function Messages() {
   const { user } = useAuth()
+  const unreadCount = useUnreadCount()
   const navigate = useNavigate()
   const location = useLocation()
   const pathname = location.pathname
@@ -192,9 +194,12 @@ export default function Messages() {
           </svg>
         </Link>
         <Link to="/messages" className={`nav-item ${pathname === '/messages' || pathname.startsWith('/chat') ? 'active' : ''}`}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <div className="nav-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {unreadCount > 0 && <span className="nav-unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </div>
         </Link>
         <Link to="/profile" className={`nav-item ${pathname === '/profile' ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">

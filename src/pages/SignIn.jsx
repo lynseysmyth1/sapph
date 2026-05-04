@@ -75,12 +75,13 @@ export default function SignIn({ onBack, initialShowForm = false, initialStep, i
     setLoading(true)
     setMessage({ type: '', text: '' })
     try {
-      await sendPasswordResetEmail(auth, email.trim())
-      showMessage('success', 'Check your email for a link to reset your password. If you don’t see it, check spam.')
+      await sendPasswordResetEmail(auth, email.trim(), {
+        url: 'https://sapph-b4f8e.web.app/signin',
+        handleCodeInApp: false
+      })
+      showMessage('success', 'Reset link sent — check your inbox and spam folder.')
     } catch (err) {
-      if (err?.code === 'auth/user-not-found') {
-        showMessage('error', 'No account found with this email.')
-      } else if (err?.code === 'auth/invalid-email') {
+      if (err?.code === 'auth/invalid-email') {
         showMessage('error', 'Invalid email address.')
       } else {
         showMessage('error', err?.message || 'Something went wrong. Please try again.')

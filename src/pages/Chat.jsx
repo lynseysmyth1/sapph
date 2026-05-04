@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { markConversationAsRead } from '../lib/chatHelpers'
+import { useUnreadCount } from '../lib/useUnreadCount'
 import './Chat.css'
 
 export default function Chat() {
@@ -11,6 +12,7 @@ export default function Chat() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const unreadCount = useUnreadCount()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [otherUser, setOtherUser] = useState(null)
@@ -104,19 +106,31 @@ export default function Chat() {
       unsubscribeMessages = onSnapshot(
         q,
         (snapshot) => {
-          const msgs = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            isSent: doc.data().senderId === user.id,
-            isSystem: doc.data().senderId === 'system'
+          const msgs = snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data(),
+            isSent: d.data().senderId === user.id,
+            isSystem: d.data().senderId === 'system'
           }))
           setMessages(msgs)
-          
-          // Mark conversation as read when messages are loaded
+
+          // Mark conversation-level unread count as read
           if (msgs.length > 0) {
             markConversationAsRead(chatId, user.id).catch(err => {
               console.error('Error marking conversation as read:', err)
             })
+          }
+
+          // Batch-update individual received messages to read: true
+          const unreadReceived = snapshot.docs.filter(d =>
+            d.data().senderId !== user.id &&
+            d.data().senderId !== 'system' &&
+            d.data().read === false
+          )
+          if (unreadReceived.length > 0) {
+            const batch = writeBatch(db)
+            unreadReceived.forEach(d => batch.update(d.ref, { read: true }))
+            batch.commit().catch(err => console.error('Error marking messages read:', err))
           }
         },
         (error) => {
@@ -249,15 +263,23 @@ export default function Chat() {
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`message-bubble ${message.isSystem ? 'system' : message.isSent ? 'sent' : 'received'}`}
-              >
-                <p className="message-text">{message.text}</p>
-                <span className="message-time">{formatMessageTime(message.timestamp)}</span>
-              </div>
-            ))}
+            {(() => {
+              const lastSeenIndex = messages.reduce((acc, m, i) =>
+                (m.isSent && m.read) ? i : acc, -1)
+              return messages.map((message, index) => (
+                <div key={message.id}>
+                  <div
+                    className={`message-bubble ${message.isSystem ? 'system' : message.isSent ? 'sent' : 'received'}`}
+                  >
+                    <p className="message-text">{message.text}</p>
+                    <span className="message-time">{formatMessageTime(message.timestamp)}</span>
+                  </div>
+                  {index === lastSeenIndex && (
+                    <span className="message-seen">Seen</span>
+                  )}
+                </div>
+              ))
+            })()}
             <div ref={messagesEndRef} />
           </>
         )}
@@ -297,9 +319,12 @@ export default function Chat() {
           </svg>
         </Link>
         <Link to="/messages" className={`nav-item ${pathname === '/messages' || pathname.startsWith('/chat') ? 'active' : ''}`}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <div className="nav-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {unreadCount > 0 && <span className="nav-unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </div>
         </Link>
         <Link to="/profile" className={`nav-item ${pathname === '/profile' ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">

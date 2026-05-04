@@ -150,6 +150,17 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
 
     const allExcluded = new Set([...excludeUserIds, ...likedIds, ...passedIds, currentUserId])
 
+    // Fetch who has already liked me (unmatched) so we can surface them first
+    const likedMeSnap = await getDocs(query(
+      collection(db, 'likes'),
+      where('toUserId', '==', currentUserId)
+    ))
+    const likedMeMap = {}
+    likedMeSnap.docs.forEach(d => {
+      const data = d.data()
+      if (!data.matched) likedMeMap[data.fromUserId] = data.createdAt
+    })
+
     // DEBUG: log exclusion breakdown
     console.log('[getDiscoveryProfiles] currentUserId:', currentUserId, '| includePassed:', includePassed)
     console.log('[getDiscoveryProfiles] likedIds (excluded):', likedIds.length, likedIds)
@@ -201,7 +212,8 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
 
       profiles.push({
         id: profileId,
-        ...profileData
+        ...profileData,
+        _likedMeAt: likedMeMap[profileId] || null
       })
     }
 
@@ -211,8 +223,14 @@ export async function getDiscoveryProfiles(currentUserId, excludeUserIds = [], m
     console.log('[getDiscoveryProfiles] skipped (no full_name):', noNameCount)
     console.log('[getDiscoveryProfiles] RETURNING:', profiles.length, 'profiles')
 
-    // Shuffle for variety
-    return profiles.sort(() => Math.random() - 0.5)
+    // People who already liked me come first (most recent like first), rest are shuffled
+    const priority = profiles
+      .filter(p => p._likedMeAt)
+      .sort((a, b) => (b._likedMeAt?.toMillis?.() || 0) - (a._likedMeAt?.toMillis?.() || 0))
+    const rest = profiles
+      .filter(p => !p._likedMeAt)
+      .sort(() => Math.random() - 0.5)
+    return [...priority, ...rest]
   } catch (error) {
     console.error('[getDiscoveryProfiles] Error:', error.code || error.message)
 

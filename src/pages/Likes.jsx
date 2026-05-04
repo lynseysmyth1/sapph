@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getUsersWhoLikedMe, getMutualMatches } from '../lib/discoveryHelpers'
+import { useUnreadCount } from '../lib/useUnreadCount'
 import './Likes.css'
 
 const RainbowIcon = ({ className }) => (
@@ -15,6 +16,7 @@ export default function Likes() {
   const pathname = location.pathname
   const navigate = useNavigate()
   const { user } = useAuth()
+  const unreadCount = useUnreadCount()
   // 'likes' shows mutual matches (heart connections); 'friends' shows one-way friendship likes
   const [activeTab, setActiveTab] = useState('likes')
   const [items, setItems] = useState([])
@@ -165,9 +167,12 @@ export default function Likes() {
           </svg>
         </Link>
         <Link to="/messages" className={`nav-item ${pathname === '/messages' || pathname.startsWith('/chat') ? 'active' : ''}`}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <div className="nav-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {unreadCount > 0 && <span className="nav-unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </div>
         </Link>
         <Link to="/profile" className={`nav-item ${pathname === '/profile' ? 'active' : ''}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nav-icon">
