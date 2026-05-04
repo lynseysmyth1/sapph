@@ -21,6 +21,13 @@
   margin-bottom: 0;
 }
 
+/* Compact photo grid */
+.ep-scroll .photos-grid {
+  gap: 8px;
+  padding: 0 20px;
+  margin-bottom: 8px;
+}
+
 /* Photo hint */
 .ep-photos-hint {
   font-family: 'Lato', sans-serif;

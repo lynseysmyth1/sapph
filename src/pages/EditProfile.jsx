@@ -127,6 +127,32 @@ export default function EditProfile() {
     e.target.value = ''
   }
 
+  const handleReplacePhoto = (index, file) => {
+    setError(null)
+    const newUrl = URL.createObjectURL(file)
+    setPhotos(prev => {
+      const next = [...prev]
+      if (next[index]?.startsWith('blob:')) URL.revokeObjectURL(next[index])
+      next[index] = newUrl
+      return next
+    })
+    compressImage(file)
+      .then(compressed => {
+        setPhotoFiles(prev => {
+          const next = [...prev]
+          next[index] = compressed
+          return next
+        })
+      })
+      .catch(() => {
+        setPhotoFiles(prev => {
+          const next = [...prev]
+          next[index] = file
+          return next
+        })
+      })
+  }
+
   const handleRemovePhoto = (index) => {
     if (photos.length <= MIN_PHOTOS) {
       setError(`You need at least ${MIN_PHOTOS} photos`)
@@ -227,6 +253,7 @@ export default function EditProfile() {
                     url={url}
                     index={index}
                     onRemove={handleRemovePhoto}
+                    onReplace={handleReplacePhoto}
                   />
                 ))}
                 {photos.length < MAX_PHOTOS && (
