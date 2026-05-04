@@ -21,13 +21,19 @@
   margin-bottom: 0;
 }
 
+/* Left-align headings (Profile.css centres them by default) */
+.ep-scroll .matching-preferences-heading {
+  text-align: left;
+  padding: 16px 20px 8px;
+  margin: 0;
+}
+
 /* Photo grid — full definition (Onboarding.css is lazy-loaded so we need this here too) */
 .ep-scroll .photos-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 0 20px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .ep-scroll .photo-preview,
@@ -101,12 +107,23 @@
   font-family: 'Lato', sans-serif;
   font-size: 0.78rem;
   color: #aaa;
-  margin: 0 20px 12px;
+  margin: 0 0 10px;
 }
 
-/* Inline fields (bio, icebreaker) */
+/* Inline fields (bio, icebreaker) — white card matching the tappable rows */
 .ep-inline-field {
-  padding: 0 20px 16px;
+  background: white;
+  border-radius: 12px;
+  margin: 0 20px;
+  padding: 16px;
+}
+
+/* Photos card */
+.ep-scroll .photos-grid-card {
+  background: white;
+  border-radius: 12px;
+  margin: 0 20px;
+  padding: 12px;
 }
 
 /* Textareas */

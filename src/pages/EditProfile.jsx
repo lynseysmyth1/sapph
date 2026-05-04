@@ -240,37 +240,39 @@ export default function EditProfile() {
         {/* ── Photos ── */}
         <div className="matching-preferences-section">
           <h2 className="matching-preferences-heading">PHOTOS</h2>
-          <p className="ep-field-hint ep-photos-hint">
-            Drag to reorder · {photos.length}/{MAX_PHOTOS} photos · minimum {MIN_PHOTOS} required
-          </p>
-          <DndContext sensors={photoSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={photos} strategy={rectSortingStrategy}>
-              <div className="photos-grid">
-                {photos.map((url, index) => (
-                  <SortablePhotoItem
-                    key={url}
-                    id={url}
-                    url={url}
-                    index={index}
-                    onRemove={handleRemovePhoto}
-                    onReplace={handleReplacePhoto}
-                  />
-                ))}
-                {photos.length < MAX_PHOTOS && (
-                  <label className="photo-add-btn" aria-label="Add photo">
-                    <span>+</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleAddPhotos}
-                      style={{ display: 'none' }}
+          <div className="photos-grid-card">
+            <p className="ep-field-hint ep-photos-hint">
+              Drag to reorder · {photos.length}/{MAX_PHOTOS} photos · minimum {MIN_PHOTOS} required
+            </p>
+            <DndContext sensors={photoSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={photos} strategy={rectSortingStrategy}>
+                <div className="photos-grid">
+                  {photos.map((url, index) => (
+                    <SortablePhotoItem
+                      key={url}
+                      id={url}
+                      url={url}
+                      index={index}
+                      onRemove={handleRemovePhoto}
+                      onReplace={handleReplacePhoto}
                     />
-                  </label>
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
+                  ))}
+                  {photos.length < MAX_PHOTOS && (
+                    <label className="photo-add-btn" aria-label="Add photo">
+                      <span>+</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleAddPhotos}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
         </div>
 
         {/* ── Bio ── */}
