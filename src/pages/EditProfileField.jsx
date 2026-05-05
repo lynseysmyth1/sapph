@@ -128,7 +128,6 @@ export default function EditProfileField() {
                 <label
                   key={opt}
                   className={`checkbox-item ${isSelected ? 'selected' : ''}`}
-                  onClick={() => toggleOption(opt)}
                 >
                   <input
                     type={type === 'radio' ? 'radio' : 'checkbox'}
