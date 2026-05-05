@@ -95,7 +95,7 @@ export default function Profile() {
         <section className="profile-content">
           {/* Matching Preferences Section */}
           <div className="matching-preferences-section">
-            <h2 className="matching-preferences-heading">FILTER MATCHING PREFERENCES</h2>
+            <h2 className="matching-preferences-heading">SEARCH PREFERENCES</h2>
             <div className="matching-preferences-list">
               <Link to="/preferences/gender" className="matching-preference-item">
                 <span className="preference-label">Gender</span>
