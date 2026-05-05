@@ -8,6 +8,7 @@ import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortab
 import SortablePhotoItem from '../components/SortablePhotoItem'
 import { compressImage, uploadPhotos } from '../lib/photoHelpers'
 import './EditProfile.css'
+import './Profile.css'
 
 // ── Field definitions for tappable rows ──────────────────────────────────────
 const FIELD_SECTIONS = [

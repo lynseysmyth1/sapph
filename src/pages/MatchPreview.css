@@ -1,0 +1,85 @@
+.mp-page {
+  min-height: 100vh;
+  background: var(--sapph-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-header {
+  padding: 12px 20px 16px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: white;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mp-title {
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--sapph-orange);
+  margin: 0;
+}
+
+.mp-controls {
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.mp-hint {
+  font-family: 'Lato', sans-serif;
+  font-size: 0.9rem;
+  color: #888;
+  text-align: center;
+  margin: 0;
+  max-width: 280px;
+}
+
+.mp-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.mp-toggle-btn {
+  padding: 10px 18px;
+  border: 1.5px solid #ddd;
+  border-radius: 50px;
+  background: white;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mp-toggle-btn.active {
+  border-color: var(--sapph-orange);
+  color: var(--sapph-orange);
+  background: #fef0ec;
+}
+
+.mp-replay-btn {
+  padding: 13px 32px;
+  background: var(--sapph-orange);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.mp-replay-btn:hover {
+  opacity: 0.85;
+}

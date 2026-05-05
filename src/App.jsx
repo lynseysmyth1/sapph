@@ -30,6 +30,7 @@ const LocationPermission = lazy(() => import('./pages/LocationPermission'))
 const Privacy = lazy(() => import('./pages/legal/Privacy'))
 const Terms   = lazy(() => import('./pages/legal/Terms'))
 const Cookies = lazy(() => import('./pages/legal/Cookies'))
+const MatchPreview = lazy(() => import('./pages/MatchPreview'))
 
 function ProtectedRoute({ children }) {
   const { user, authLoading } = useAuth()
@@ -259,6 +260,7 @@ export default function App() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms"   element={<Terms />} />
       <Route path="/cookies" element={<Cookies />} />
+      <Route path="/match-preview" element={<MatchPreview />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>

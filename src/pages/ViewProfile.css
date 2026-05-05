@@ -50,7 +50,8 @@
   display: flex;
   gap: 20px;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 /* Go to chat button (Likes tab) */

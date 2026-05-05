@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { recordLike, recordPass } from '../lib/chatHelpers'
 import { useUnreadCount } from '../lib/useUnreadCount'
+import MatchModal from '../components/MatchModal'
 import './Home.css'
 
 function formatValue(value, fieldId) {
@@ -137,6 +138,19 @@ export default function Home() {
       })
     }
   }, [currentProfile?.id])
+
+  // Keyboard navigation for web — arrow keys to pass/go back, L/F to like/friend
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!currentProfile || liking) return
+      if (e.key === 'ArrowRight') handlePass()
+      if (e.key === 'ArrowLeft') loadPreviousProfile()
+      if (e.key === 'l' || e.key === 'L') handleLike('heart')
+      if (e.key === 'f' || e.key === 'F') handleLike('friendship')
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentProfile, liking])
 
   // Animate the current card off to the left, then run callback
   const animateCardOut = (direction = 'left', callback) => {
@@ -499,55 +513,14 @@ export default function Home() {
       )}
       {/* Match Overlay */}
       {showMatch && matchedProfile && (
-        <div className="match-overlay" onClick={() => setShowMatch(false)}>
-          <div className="match-modal" onClick={e => e.stopPropagation()}>
-            <h2 className="match-title">
-              {matchedLikeType === 'friendship' ? "You're friends!" : "It's a match!"}
-            </h2>
-            <p className="match-subtitle">
-              {matchedLikeType === 'friendship'
-                ? `You and ${matchedProfile.full_name} both want to be friends!`
-                : `You and ${matchedProfile.full_name} liked each other!`}
-            </p>
-            <div className="match-photos">
-              <div className="match-photo-wrap">
-                <img
-                  src={profile?.photos?.find(u => u.startsWith('http'))}
-                  alt="You"
-                  className="match-photo"
-                />
-              </div>
-              <div className="match-photo-wrap match-photo-overlap">
-                <img
-                  src={matchedProfile.photos?.find(u => u.startsWith('http'))}
-                  alt={matchedProfile.full_name}
-                  className="match-photo"
-                />
-              </div>
-            </div>
-            <div className="match-actions">
-              <button
-                className="match-button match-button-primary"
-                onClick={() => {
-                  setShowMatch(false)
-                  if (matchedConversationId) {
-                    navigate(`/chat/${matchedConversationId}`)
-                  } else {
-                    navigate('/messages')
-                  }
-                }}
-              >
-                Send a message
-              </button>
-              <button
-                className="match-button match-button-secondary"
-                onClick={() => setShowMatch(false)}
-              >
-                Keep browsing
-              </button>
-            </div>
-          </div>
-        </div>
+        <MatchModal
+          myPhoto={profile?.photos?.find(u => u.startsWith('http'))}
+          theirPhoto={matchedProfile.photos?.find(u => u.startsWith('http'))}
+          theirName={matchedProfile.full_name}
+          likeType={matchedLikeType}
+          conversationId={matchedConversationId}
+          onClose={() => setShowMatch(false)}
+        />
       )}
 
       <div className="card-stage">
@@ -629,6 +602,7 @@ export default function Home() {
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
                 </button>
+                <div className="action-buttons-right">
                 {showWave && <button
                   className="action-btn btn-wave"
                   aria-label="Friends"
@@ -649,6 +623,7 @@ export default function Home() {
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                 </button>}
+                </div>
               </div>
                 )
               })()}

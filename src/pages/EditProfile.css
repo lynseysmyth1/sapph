@@ -164,6 +164,20 @@
   align-items: center;
   justify-items: start;
   column-gap: 8px;
+  width: 100%;
+  background: #fff;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.ep-scroll .matching-preference-item:hover,
+.ep-scroll .matching-preference-item:active {
+  background-color: #fef0ec;
 }
 
 .ep-scroll .matching-preference-item .preference-label {

@@ -1,0 +1,16 @@
+---
+description: After every build and deploy, also commit and push changes to GitHub
+alwaysApply: true
+---
+
+# Deploy + GitHub Push
+
+Whenever you run a build and deploy (`npm run build && firebase deploy --only hosting`), you must also commit any uncommitted changes and push to GitHub immediately after.
+
+## Steps after every deploy
+
+1. `git add -A` — stage all changes
+2. `git commit -m "..."` — write a concise commit message summarising what was deployed
+3. `git push` — push to the remote branch
+
+Do this automatically without waiting to be asked, as part of every deploy workflow.
